@@ -20,7 +20,7 @@ class State(object):
         self._callbacks: List[Callable[[Self], None]] = []
         self._active = True
 
-    def on_change(self, callback: Callable[[Self], None]):
+    def on_change(self, callback: Callable[[Self], None], trigger=False):
         """
         Register a callback on this state.
 
@@ -29,6 +29,9 @@ class State(object):
         callback: callable
         """
         self._callbacks.append(callback)
+
+        if trigger:
+            callback(self)
 
     def notify_change(self):
         """
