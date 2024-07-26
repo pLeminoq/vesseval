@@ -106,7 +106,7 @@ class CellLayerState(HigherState):
     @computed_state
     def cell_area_state(self, mask_state: ImageState, contour_mask_state: ImageState) -> IntState:
         _mask = cv.bitwise_and(contour_mask_state.value, contour_mask_state.value, mask=mask_state.value)
-        return _mask.sum() // 255
+        return IntState(_mask.sum() // 255)
 
 class Label(tk.Label):
 
@@ -145,28 +145,31 @@ class Table(tk.Frame):
         self.label_4.grid(column=0, row=3)
         self.value_4.grid(column=1, row=3)
 
-root = tk.Tk()
+class ResultView(tk.Toplevel):
 
-cell_layer_state = CellLayerState(ImageState(mask), ContourState.from_numpy(cnt_inner), ContourState.from_numpy(cnt_outer))
+    def __init__(self, state: CellLayerState):
+        super().__init__()
 
-canvas = tk.Canvas(root, width=mask.shape[1], height=mask.shape[0])
-_image = Image(canvas, ImageState(mask_colored))
-_cnt_inner = Contour(canvas, cell_layer_state.inner_contour_state)
-_cnt_outer = Contour(canvas, cell_layer_state.outer_contour_state)
-canvas.grid(column=0, row=0)
+        self.state = state
 
-table = Table(root, cell_layer_state)
-table.grid(column=0, row=1)
+        self.canvas = tk.Canvas(self)
+        self.image = Image(self.canvas, self.state.mask_state)
+        self.contour_inner = Contour(self.canvas, self.state.inner_contour_state)
+        self.contour_outer = Contour(self.canvas, self.state.outer_contour_state)
 
-test = np.zeros(mask.shape, np.uint8)
-test = cv.drawContours(test, [cnt_outer], 0, 1, -1)
-test = cv.drawContours(test, [cnt_inner], 0, 0, -1)
-# print(test.sum(), test.sum() // 255)
-print(test.sum())
-x = cv.bitwise_and(test, test, mask=mask)
-print(x.sum())
+        self.table = Table(self, state)
 
-ttk.Style().theme_use("clam")
+        self.canvas.grid(column=0, row=0)
+        self.table.grid(column=0, row=1)
 
-root.bind("<Key-q>", lambda event: exit(0))
-root.mainloop()
+        self.bind("<Key-q>", lambda event: exit(0))
+
+# root = tk.Tk()
+
+# cell_layer_state = CellLayerState(ImageState(mask), ContourState.from_numpy(cnt_inner), ContourState.from_numpy(cnt_outer))
+# result_view = ResultView(cell_layer_state)
+
+# ttk.Style().theme_use("clam")
+
+# root.bind("<Key-q>", lambda event: exit(0))
+# root.mainloop()

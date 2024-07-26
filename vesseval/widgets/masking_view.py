@@ -17,8 +17,8 @@ class MaskingState(HigherState):
         channel: int,
         threshold: int = 100,
         opening: bool = True,
-        opening_size: int = 3,
-        closing: bool = True,
+        opening_size: int = 6,
+        closing: bool = False,
         closing_size: int = 10,
     ):
         super().__init__()
@@ -28,7 +28,9 @@ class MaskingState(HigherState):
 
         self.image_state = image_state
         self.threshold_state = threshold
-        self.thresholded_state = self.thresholded_state(self.image_state, self.threshold_state)
+        self.thresholded_state = self.thresholded_state(
+            self.image_state, self.threshold_state
+        )
 
         self.opening_state = opening
         self.opening_size_state = opening_size
@@ -36,7 +38,16 @@ class MaskingState(HigherState):
         self.closing_state = closing
         self.closing_size_state = closing_size
 
-        self.mask_state = self.mask_state(self.thresholded_state, self.opening_state, self.opening_size_state, self.closing_state, self.closing_size_state)
+        self.mask_state = self.mask_state(
+            self.thresholded_state,
+            self.opening_state,
+            self.opening_size_state,
+            self.closing_state,
+            self.closing_size_state,
+        )
+        self.masked_image_state = self.masked_image_state(
+            self.image_state, self.mask_state
+        )
 
     @computed_state
     def thresholded_state(self, image_state: ImageState, threshold_state: IntState):
@@ -44,7 +55,6 @@ class MaskingState(HigherState):
         mask = image[:, :, self._channel] > threshold_state.value
         mask = (mask * 255).astype(np.uint8)
         return ImageState(mask)
-
 
     @computed_state
     def mask_state(
@@ -66,9 +76,19 @@ class MaskingState(HigherState):
             _size = self.closing_size_state.value * 2 - 1
             mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, np.ones((_size, _size)))
 
-        mask = cv.bitwise_and(image, image, mask=mask)
+        # mask = cv.bitwise_and(image, image, mask=mask)
 
         return ImageState(mask)
+
+    @computed_state
+    def masked_image_state(
+        self,
+        image_state: ImageState,
+        mask_state: ImageState,
+    ) -> ImageState:
+        return ImageState(
+            cv.bitwise_and(image_state.value, image_state.value, mask=mask_state.value)
+        )
 
 
 class CheckedScaleState(ScaleState):
@@ -103,10 +123,8 @@ class MaskingView(tk.Frame):
         super().__init__(parent)
         self.state = state
 
-        self.canvas = tk.Canvas(
-            self, width=self.state._resolution[0], height=self.state._resolution[1]
-        )
-        self.image = Image(self.canvas, self.state.mask_state)
+        self.canvas = tk.Canvas(self)
+        self.image = Image(self.canvas, self.state.masked_image_state)
 
         self.frame = tk.Frame(self)
         self.title_1 = tk.Label(self.frame, text="Treshold", width=10)
@@ -142,8 +160,12 @@ class MaskingView(tk.Frame):
             ),
         )
 
-        self.tool_tip_opening = ToolTip(self.title_2, msg="Opening removes small isolated regions", delay=0.5)
-        self.tool_tip_closing = ToolTip(self.title_3, msg="Closing connects regions close to each other", delay=0.5)
+        self.tool_tip_opening = ToolTip(
+            self.title_2, msg="Opening removes small isolated regions", delay=0.5
+        )
+        self.tool_tip_closing = ToolTip(
+            self.title_3, msg="Closing connects regions close to each other", delay=0.5
+        )
 
         self.title_1.grid(row=0, column=0)
         self.title_2.grid(row=0, column=1)

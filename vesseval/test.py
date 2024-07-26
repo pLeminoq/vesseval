@@ -10,7 +10,7 @@ from .widgets.scale import Scale, ScaleState
 from .widgets.masking_view import MaskingView, MaskingState
 
 
-def compute_contours(mask, angle_step:int=5):
+def compute_contours(mask, angle_step:int=12):
     cnt_inner = []
     cnt_outer = []
 
@@ -55,7 +55,7 @@ class ThresholdState(HigherState):
         super().__init__()
 
         self.image_size_state = 512
-        self.image_state = ImageState(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+        self.image_state = ImageState(image)
 
         self.resized_image_state = self.resized_image_state(
             self.image_state, self.image_size_state
@@ -68,12 +68,12 @@ class ThresholdState(HigherState):
         return ImageState(resize(image_state.value, image_size_state.value))
 
 
-class ThresholdView(tk.Frame):
+class ThresholdView(tk.Toplevel):
 
-    def __init__(self, parent: tk.Frame, state: ThresholdState):
-        super().__init__(parent)
+    def __init__(self, image):
+        super().__init__()
 
-        self.state = state
+        self.state = ThresholdState(image)
 
         self.canvas_1 = tk.Canvas(
             self,
@@ -99,38 +99,35 @@ class ThresholdView(tk.Frame):
         self.button = ttk.Button(self, text="Processs ...", command=self.process)
         self.button.grid(row=2, column=0, columnspan=2, pady=5)
 
+        self.bind("<Key-q>", lambda event: exit(0))
+
 
         
     def process(self, *args):
-        print(f"Process")
+        mask = self.masking_view_green.state.mask_state.value
+        cnt_inner, cnt_outer = compute_contours(mask)
 
-        mask = self.masking_view_green.state.thresholded_state.value
-        print(mask.shape)
+        from .widgets.canvas.contour import ContourState
+        from .table_view import ResultView, CellLayerState
 
-        cnt_inner, cnt_outer = compute_contours(mask, angle_step=10)
-        print(cnt_inner.shape)
-
-        # length_inner = 
-
-        from .widgets.canvas.contour import Contour, ContourState
-        cnt = Contour(self.masking_view_green.canvas, ContourState.from_numpy(cnt_inner))
-        cnt2 = Contour(self.masking_view_green.canvas, ContourState.from_numpy(cnt_outer))
+        state = CellLayerState(self.masking_view_green.state.thresholded_state, ContourState.from_numpy(cnt_inner), ContourState.from_numpy(cnt_outer))
+        ResultView(state)
 
 
 
-img = cv.imread("data/Lunge_Overlay_scalebar.tif")
+# img = cv.imread("data/Lunge_Overlay_scalebar.tif")
 
-l, t, w, h = 400, 570, 90, 70
-img = img[t : t + h, l : l + w]
+# l, t, w, h = 400, 570, 90, 70
+# img = img[t : t + h, l : l + w]
 
-root = tk.Tk()
-root.clipboard_clear()
-root.clipboard_append("1\t2\t")
+# root = tk.Tk()
+# root.clipboard_clear()
+# root.clipboard_append("1\t2\t")
 
-threshold_view = ThresholdView(root, ThresholdState(img))
-threshold_view.grid()
+# threshold_view = ThresholdView(img)
+# threshold_view.grid()
 
-ttk.Style().theme_use("clam")
+# ttk.Style().theme_use("clam")
 
-root.bind("<Key-q>", lambda event: exit(0))
-root.mainloop()
+# root.bind("<Key-q>", lambda event: exit(0))
+# root.mainloop()

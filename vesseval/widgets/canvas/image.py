@@ -32,13 +32,19 @@ class Image(CanvasItem):
     def __init__(self, canvas: tk.Canvas, state: ImageState):
         super().__init__(canvas, state)
 
-        self.img_tk = img_to_tk(self.state.value)
+        self.img_tk = None
+        self.img_id = None
+
+        self.redraw(self.state)
+
+    def redraw(self, state):
+        if self.img_id is not None:
+            self.canvas.delete(self.img_id)
+
+        self.canvas.config(width=state.value.shape[1], height=state.value.shape[0])
+        self.img_tk = img_to_tk(state.value)
         self.img_id = self.canvas.create_image(
             self.state.value.shape[1] // 2,
             self.state.value.shape[0] // 2,
             image=self.img_tk,
         )
-
-    def redraw(self, state):
-        self.img_tk = img_to_tk(state.value)
-        self.canvas.itemconfig(self.img_id, image=self.img_tk)

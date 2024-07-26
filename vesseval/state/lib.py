@@ -427,24 +427,3 @@ class SequenceState(HigherState):
             for i, arg in enumerate(args):
                 self[i].value = arg
 
-
-if __name__ == "__main__":
-    a = IntState(5)
-    b = IntState(7)
-
-    test_f = computed_state(lambda state: IntState(state.value ** 2))
-
-    c = test_f(a)
-    d = test_f(b)
-
-    a.on_change(lambda state: print(f"A: {state.value}"))
-    b.on_change(lambda state: print(f"B: {state.value}"))
-    c.on_change(lambda state: print(f"C: {state.value}"))
-    d.on_change(lambda state: print(f"D: {state.value}"))
-
-    a.set(3)
-    a.set(2)
-    c.set(1)
-    b.set(4)
-
-
