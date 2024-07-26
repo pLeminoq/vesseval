@@ -26,8 +26,6 @@ class ToolbarState(HigherState):
             else:
                 mode.set(False)
 
-        print(f"Mouse={self.mouse_mode.value}, BB={self.bounding_box_mode.value}")
-
 
 class Toolbar(tk.Frame):
 
