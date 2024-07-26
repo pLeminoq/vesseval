@@ -11,6 +11,7 @@ from .widgets.canvas.rectangle import Rectangle, RectangleState
 from .widgets.canvas.line import Line, LineState
 from .widgets.canvas.contour import Contour, ContourState
 from .widgets.menu import MenuBar
+from .widgets.toolbar import Toolbar
 
 # class App(tk.Tk):
 
@@ -31,59 +32,56 @@ args = parser.parse_args()
 
 app_state.filename_state.set(args.image)
 
+class App(tk.Tk):
 
-points = [
-    PointState(400, 570),
-    PointState(400 + 90, 570),
-    PointState(400 + 90, 570 + 70),
-    PointState(400, 570 + 70),
-]
+    def __init__(self):
+        super().__init__()
 
-root = tk.Tk()
-menu_bar = MenuBar(root)
+        self.menu_bar = MenuBar(self)
 
-canvas = tk.Canvas(root)
-canvas.grid(column=0, row=0)
+        self.toolbar = Toolbar(self)
+        self.toolbar.grid(column=0, row=0)
 
-image = Image(canvas, app_state.image_state)
-contour_state = ContourState(points)
-contour = Contour(canvas, contour_state)
+        self.canvas = tk.Canvas(self)
+        self.canvas.grid(column=0, row=1)
 
-from .test import ThresholdView, ThresholdState
+        self.bb_mode_bindings = {}
+        self.toolbar.state.bounding_box_mode.on_change(self.on_bb_mode, trigger=True)
 
-def on_return(*args):
-    img = app_state.image_state.value
-    cnt = contour_state.to_numpy()
+        self.image = Image(self.canvas, app_state.image_state)
 
-    mask = np.zeros(img.shape[:2], np.uint8)
-    mask = cv.drawContours(mask, [cnt], 0, 255, -1)
+        self.contour_state = None
+        self.contour = None
 
-    l, t, w, h = cv.boundingRect(cnt)
-    _img = cv.bitwise_and(img, img, mask=mask)
-    _img = _img[t:t+h, l:l+w]
+        self.bind("<Key-q>", lambda event: exit(0))
 
-    ThresholdView(_img)
+    def on_bb_mode(self, state):
+        if state.value:
+            self.bb_mode_bindings["<Button-1>"] = self.canvas.bind("<Button-1>", self.bb_mode_new_contour)
+            self.bb_mode_bindings["<B1-Motion>"] = self.canvas.bind("<B1-Motion>", self.bb_mode_init_contour)
+            self.bb_mode_bindings["<B1-ButtonRelease>"] = self.canvas.bind("<B1-ButtonRelease>", lambda event: self.toolbar.state.mouse_mode.set(True))
+        else:
+            for binding, _id in self.bb_mode_bindings.items():
+                self.canvas.unbind(binding, _id)
+            self.bb_mode_bindings.clear()
 
-root.bind("<Return>", on_return)
+    def bb_mode_new_contour(self, event):
+        if self.contour is not None:
+            self.contour.clear() 
 
+        x, y = event.x, event.y
+        self.contour_state = ContourState([PointState(x, y), PointState(x + 1, y), PointState(x + 1, y + 1), PointState(x, y + 1)])
+        self.contour = Contour(self.canvas, self.contour_state)
 
-# image = Image(canvas, ImageState(cv.cvtColor(img, cv.COLOR_BGR2RGB)))
-# rects = []
-# for i, pt in enumerate(contour):
-    # rect = Rectangle(canvas, RectangleState(pt))
-    # def update_position(*args):
-        # print(f"Update position of rect {i}, {rect.id} to {get_pointer_xy()}")
-        # rect.state.center_state.set(*get_pointer_xy())
-    # rects.append(rect)
+    def bb_mode_init_contour(self, event):
+        x, y = event.x, event.y
 
+        self.contour_state[1].x.set(x)
 
-# for pt_1, pt_2 in zip(contour, [*contour[1:], contour[0]]):
-    # Line(canvas, LineState(pt_1, pt_2, "white"))
+        self.contour_state[2].x.set(x)
+        self.contour_state[2].y.set(y)
 
+        self.contour_state[3].y.set(y)
 
-# canvas.grid(column=0, row=0)
-
-root.bind("<Key-q>", lambda event: exit(0))
-
-
-root.mainloop()
+app = App()
+app.mainloop()
