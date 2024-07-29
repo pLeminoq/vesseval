@@ -43,8 +43,8 @@ def compute_contours(mask, angle_step:int=12):
 
 
 def resize(image, max_size):
-    scale_x = max_size / image.shape[1]
-    scale_y = max_size / image.shape[0]
+    scale_x = max_size[0] / image.shape[1]
+    scale_y = max_size[1] / image.shape[0]
     scale = min(scale_x, scale_y)
     return cv.resize(image, None, fx=scale, fy=scale, interpolation=cv.INTER_NEAREST)
 
@@ -54,7 +54,7 @@ class ThresholdState(HigherState):
     def __init__(self, image: np.ndarray):
         super().__init__()
 
-        self.image_size_state = 512
+        self.image_size_state = (512, 400)
         self.image_state = ImageState(image)
 
         self.resized_image_state = self.resized_image_state(
@@ -65,7 +65,7 @@ class ThresholdState(HigherState):
     def resized_image_state(
         self, image_state: ImageState, image_size_state: IntState
     ) -> ImageState:
-        return ImageState(resize(image_state.value, image_size_state.value))
+        return ImageState(resize(image_state.value, (512, 450)))
 
 
 class ThresholdView(tk.Toplevel):
@@ -99,11 +99,13 @@ class ThresholdView(tk.Toplevel):
         self.button = ttk.Button(self, text="Processs ...", command=self.process)
         self.button.grid(row=2, column=0, columnspan=2, pady=5)
 
-        self.bind("<Key-q>", lambda event: exit(0))
+        self.bind("<Key-q>", lambda event: self.destroy())
 
 
         
     def process(self, *args):
+        self.destroy()
+
         mask = self.masking_view_green.state.mask_state.value
         cnt_inner, cnt_outer = compute_contours(mask)
 
@@ -113,21 +115,3 @@ class ThresholdView(tk.Toplevel):
         state = CellLayerState(self.masking_view_green.state.thresholded_state, ContourState.from_numpy(cnt_inner), ContourState.from_numpy(cnt_outer))
         ResultView(state)
 
-
-
-# img = cv.imread("data/Lunge_Overlay_scalebar.tif")
-
-# l, t, w, h = 400, 570, 90, 70
-# img = img[t : t + h, l : l + w]
-
-# root = tk.Tk()
-# root.clipboard_clear()
-# root.clipboard_append("1\t2\t")
-
-# threshold_view = ThresholdView(img)
-# threshold_view.grid()
-
-# ttk.Style().theme_use("clam")
-
-# root.bind("<Key-q>", lambda event: exit(0))
-# root.mainloop()
