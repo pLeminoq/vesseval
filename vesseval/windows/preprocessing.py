@@ -86,21 +86,19 @@ class ThresholdView(tk.Toplevel):
 
         mask = self.masking_view_green.state.processed_mask.image_state.value
 
-        angle_step = 12
+        angle_step = 6
         part = angle_step / 360
-        import time
-        since = time.time()
         cnt_inner, cnt_outer = compute_contours(mask, angle_step=angle_step)
-        print(f"Took: {time.time() - since}")
-
-        print(f"Surround: {100 * len(cnt_inner) * part:.2f}%")
 
         from ..widgets.canvas.contour import ContourState
         from ..table_view import ResultView, CellLayerState
 
         state = CellLayerState(
-            self.masking_view_green.state.colored_mask.image_state,
+            self.state.display_image_state,
+            self.masking_view_green.state.mask.image_state,
             ContourState.from_numpy(cnt_inner),
             ContourState.from_numpy(cnt_outer),
+            scale = self.state.scale_state,
+            angle_step=angle_step,
         )
         ResultView(state)
