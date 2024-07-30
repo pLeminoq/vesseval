@@ -79,7 +79,7 @@ class ThresholdView(tk.Toplevel):
         self.masking_view_green.grid(row=0, column=1, padx=10, pady=5)
         self.masking_view_red.grid(row=1, column=1, padx=10, pady=5)
 
-        self.button = ttk.Button(self, text="Processs ...", command=self.process)
+        self.button = ttk.Button(self, text="Process", command=self.process)
         self.button.grid(row=2, column=0, columnspan=2, pady=5)
 
         self.bind("<Key-q>", lambda event: self.destroy())
