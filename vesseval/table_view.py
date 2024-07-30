@@ -152,10 +152,10 @@ class CellLayerState(HigherState):
         return FloatState(area)
 
 
-class ResultView(tk.Toplevel):
+class CellLayerView(tk.Frame):
 
-    def __init__(self, state: CellLayerState):
-        super().__init__()
+    def __init__(self, parent: tk.Widget, state: CellLayerState):
+        super().__init__(parent)
 
         self.state = state
 
@@ -231,4 +231,34 @@ class ResultView(tk.Toplevel):
         self.canvas.grid(column=0, row=0, padx=(5, 5), pady=(5, 5))
         self.table.grid(column=0, row=1, pady=(5, 5))
 
-        self.bind("<Key-q>", lambda event: exit(0))
+class ResultView(tk.Toplevel):
+
+    def __init__(self, cell_layer_states):
+        super().__init__()
+
+        self.cell_layer_states = cell_layer_states
+
+        self.cell_layer_view_1 = CellLayerView(self, cell_layer_states[0])
+        self.cell_layer_view_2 = CellLayerView(self, cell_layer_states[1])
+        self.button = ttk.Button(self, text="Copy", command=self.on_copy)
+
+        self.cell_layer_view_1.grid(row=0, column=0, padx=5)
+        self.cell_layer_view_2.grid(row=0, column=1, padx=5)
+        self.button.grid(row=1, column=0, columnspan=2, pady=5)
+
+        self.bind("<Key-q>", lambda event: self.destroy())
+
+    def on_copy(self, *args):
+        values = []
+        for state in self.cell_layer_states:
+            values.append(state.inner_length.value)
+            values.append(state.outer_length.value)
+            values.append(state.contour_area.value)
+            values.append(state.cell_area.value)
+            values.append(state.surround.value)
+            values.append(state.thickness.value)
+        values = list(map(str, values))
+
+        self.clipboard_clear()
+        self.clipboard_append("\t".join(values))
+

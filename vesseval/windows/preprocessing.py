@@ -9,8 +9,11 @@ from ..state import (
     DisplayImageState,
     ImageState,
 )
+from ..widgets.canvas.contour import ContourState
 from ..widgets.canvas.image import Image
 from ..widgets.scale import Scale, ScaleState
+from ..table_view import ResultView, CellLayerState
+
 from .masking_view import MaskingView, MaskingState
 
 
@@ -82,23 +85,32 @@ class ThresholdView(tk.Toplevel):
         self.bind("<Key-q>", lambda event: self.destroy())
 
     def process(self, *args):
-        self.destroy()
-
-        mask = self.masking_view_green.state.processed_mask.image_state.value
 
         angle_step = 6
-        part = angle_step / 360
+
+        mask = self.masking_view_green.state.processed_mask.image_state.value
         cnt_inner, cnt_outer = compute_contours(mask, angle_step=angle_step)
-
-        from ..widgets.canvas.contour import ContourState
-        from ..table_view import ResultView, CellLayerState
-
-        state = CellLayerState(
+        cell_layer_state_1 = CellLayerState(
             self.state.display_image_state,
             self.masking_view_green.state.mask.image_state,
             ContourState.from_numpy(cnt_inner),
             ContourState.from_numpy(cnt_outer),
-            scale = self.state.scale_state,
+            scale=self.state.scale_state,
             angle_step=angle_step,
         )
-        ResultView(state)
+
+        mask = self.masking_view_red.state.processed_mask.image_state.value
+        cnt_inner, cnt_outer = compute_contours(mask, angle_step=angle_step)
+        cell_layer_state_2 = CellLayerState(
+            self.state.display_image_state,
+            self.masking_view_red.state.mask.image_state,
+            ContourState.from_numpy(cnt_inner),
+            ContourState.from_numpy(cnt_outer),
+            scale=self.state.scale_state,
+            angle_step=angle_step,
+        )
+
+        ResultView([cell_layer_state_1, cell_layer_state_2])
+
+        self.withdraw()
+        self.destroy()
