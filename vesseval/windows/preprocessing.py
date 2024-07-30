@@ -1,0 +1,106 @@
+import tkinter as tk
+from tkinter import ttk
+
+import cv2 as cv
+import numpy as np
+
+from ..state import (
+    ResolutionState,
+    DisplayImageState,
+    ImageState,
+)
+from ..widgets.canvas.image import Image
+from ..widgets.scale import Scale, ScaleState
+from .masking_view import MaskingView, MaskingState
+
+
+def compute_contours(mask, angle_step: int = 10):
+    cnt_inner = []
+    cnt_outer = []
+
+    center = np.array(mask.shape[::-1]) / 2
+    for angle_deg in range(0, 360, angle_step):
+        angle = np.deg2rad(angle_deg)
+        direction = np.array([np.cos(angle), np.sin(angle)]) * max(mask.shape)
+
+        _line = np.zeros(mask.shape, np.uint8)
+        _line = cv.line(
+            _line,
+            tuple(center.astype(int)),
+            tuple((center + direction).astype(int)),
+            255,
+            1,
+        )
+        _line = cv.bitwise_and(mask, mask, mask=_line)
+        left, top, width, height = cv.boundingRect(_line)
+        if width == 0 and height == 0:
+            continue
+
+        if 0 <= angle_deg < 90:
+            cnt_inner.append((left, top))
+            cnt_outer.append((left + width, top + height))
+        elif 90 <= angle_deg < 180:
+            cnt_inner.append((left + width, top))
+            cnt_outer.append((left, top + height))
+        elif 180 <= angle_deg < 270:
+            cnt_inner.append((left + width, top + height))
+            cnt_outer.append((left, top))
+        else:
+            cnt_inner.append((left, top + height))
+            cnt_outer.append((left + width, top))
+
+    return np.array(cnt_inner), np.array(cnt_outer)
+
+
+class ThresholdView(tk.Toplevel):
+
+    def __init__(self, image: np.ndarray):
+        super().__init__()
+
+        self.state = DisplayImageState(ImageState(image), ResolutionState(512, 400))
+
+        self.canvas = tk.Canvas(self)
+        self.image = Image(self.canvas, self.state)
+
+        self.masking_view_green = MaskingView(
+            self,
+            state=MaskingState(self.state, channel=1),
+        )
+        self.masking_view_red = MaskingView(
+            self,
+            state=MaskingState(self.state, channel=0),
+        )
+
+        self.canvas.grid(row=0, column=0, rowspan=2)
+
+        self.masking_view_green.grid(row=0, column=1, padx=10, pady=5)
+        self.masking_view_red.grid(row=1, column=1, padx=10, pady=5)
+
+        self.button = ttk.Button(self, text="Processs ...", command=self.process)
+        self.button.grid(row=2, column=0, columnspan=2, pady=5)
+
+        self.bind("<Key-q>", lambda event: self.destroy())
+
+    def process(self, *args):
+        self.destroy()
+
+        mask = self.masking_view_green.state.processed_mask.image_state.value
+
+        angle_step = 12
+        part = angle_step / 360
+        import time
+        since = time.time()
+        cnt_inner, cnt_outer = compute_contours(mask, angle_step=angle_step)
+        print(f"Took: {time.time() - since}")
+
+        print(f"Surround: {100 * len(cnt_inner) * part:.2f}%")
+
+        from ..widgets.canvas.contour import ContourState
+        from ..table_view import ResultView, CellLayerState
+
+        state = CellLayerState(
+            self.masking_view_green.state.colored_mask.image_state,
+            ContourState.from_numpy(cnt_inner),
+            ContourState.from_numpy(cnt_outer),
+        )
+        ResultView(state)

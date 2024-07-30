@@ -2,6 +2,7 @@
 States enable a reactive implementation of widgets.
 """
 
+from .app import AppState, app_state
 from .lib import (
     computed_state,
     FloatState,
@@ -14,19 +15,27 @@ from .lib import (
     SequenceState,
     State,
 )
-from .resolution import ResolutionState
+from .image import DisplayImageState, ImageState, ResolutionState
 from .point import PointState
 
 __all__ = [
+    "app_state",
+    "AppState",
+
     "computed_state",
     "FloatState",
-    "HigherState",
     "IntState",
     "ListState",
-    "ObjectState",
-    "PointState",
-    "ResolutionState",
-    "SequenceState",
     "StringState",
+    "BoolState",
+    "ObjectState",
+    "HigherState",
+    "SequenceState",
     "State",
+
+    "DisplayImageState",
+    "ImageState",
+    "ResolutionState",
+
+    "PointState",
 ]

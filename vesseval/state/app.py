@@ -1,7 +1,14 @@
 import cv2 as cv
 import numpy as np
 
-from .lib import computed_state, FloatState, HigherState, StringState, ObjectState
+from .image import DisplayImageState, ImageState, ResolutionState
+from .lib import (
+    computed_state,
+    FloatState,
+    HigherState,
+    StringState,
+    ObjectState,
+)
 
 placeholder_image = np.zeros((512, 512, 3), np.uint8)
 
@@ -15,18 +22,25 @@ class AppState(HigherState):
         self.pixel_size_state = FloatState(0.74588)
         self.size_unit_state = StringState("μm")
 
-        self.image_state = self.image_state(self.filename_state)
+        self.display_resolution_state = ResolutionState(1600, 900)
+        self.display_image_state = DisplayImageState(
+            ImageState(placeholder_image),
+            self.display_resolution_state,
+            interpolation=cv.INTER_AREA,
+        )
 
-    @computed_state
-    def image_state(self, filename_state: StringState):
-        filename = filename_state.value
+        self.filename_state.on_change(self.on_filename)
+
+    def on_filename(self, state: StringState):
+        filename = state.value
 
         if filename == "":
-            return ObjectState(placeholder_image)
+            self.display_image_state.image_state.set(placeholder_image)
+            return
 
         image = cv.imread(filename)
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        return ObjectState(image)
+        self.display_image_state.image_state.set(image)
 
 
 app_state = AppState()

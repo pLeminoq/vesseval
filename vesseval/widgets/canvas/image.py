@@ -6,30 +6,17 @@ from PIL import ImageTk
 from PIL import Image as PILImage
 import tkinter as tk
 
-from ...state import ObjectState
+from ...state import DisplayImageState
 from .lib import CanvasItem
 
 
-class ImageState(ObjectState):
-
-    def __init__(self, value: np.ndarray):
-        super().__init__(value)
-
-        # assert (
-            # len(self.value.shape) == 3
-        # ), f"Expected an RGB image with 3 dimensions, but got {len(self.value.shape)}"
-        # assert (
-            # self.value.shape[-1] == 3
-        # ), f"Expected the last dimensions to be color which means size 3, but got {self.value.shape[0]}"
-
-
-def img_to_tk(img: np.array) -> ImageTk:
+def img_to_tk(img: np.ndarray) -> ImageTk:
     return ImageTk.PhotoImage(PILImage.fromarray(img))
 
 
 class Image(CanvasItem):
 
-    def __init__(self, canvas: tk.Canvas, state: ImageState):
+    def __init__(self, canvas: tk.Canvas, state: DisplayImageState):
         super().__init__(canvas, state)
 
         self.img_tk = None
@@ -41,10 +28,11 @@ class Image(CanvasItem):
         if self.img_id is not None:
             self.canvas.delete(self.img_id)
 
-        self.canvas.config(width=state.value.shape[1], height=state.value.shape[0])
-        self.img_tk = img_to_tk(state.value)
+        width, height = self.state.resolution_state.values()
+        self.canvas.config(width=width, height=height)
+        self.img_tk = img_to_tk(state.display_image_state.value)
         self.img_id = self.canvas.create_image(
-            self.state.value.shape[1] // 2,
-            self.state.value.shape[0] // 2,
+            width // 2,
+            height // 2,
             image=self.img_tk,
         )

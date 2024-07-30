@@ -3,9 +3,9 @@ import numpy as np
 import tkinter as tk
 from tkinter import ttk
 
-from .state import HigherState, computed_state, IntState, FloatState, StringState
-from .widgets.canvas.contour import Contour, ContourState
-from .widgets.canvas.image import Image, ImageState
+from .state import HigherState, computed_state, IntState, FloatState, StringState, ImageState, DisplayImageState, ResolutionState
+from .widgets.canvas.contour import Contour, ContourState, DisplayContourState
+from .widgets.canvas.image import Image
 
 
 def compute_contours(mask, angle_step:int=5):
@@ -38,23 +38,6 @@ def compute_contours(mask, angle_step:int=5):
             cnt_outer.append((left + width, top))
 
     return np.array(cnt_inner), np.array(cnt_outer)
-
-
-img = cv.imread("data/Lunge_Overlay_scalebar.tif")
-
-l, t, w, h = 400, 570, 90, 70
-img = img[t : t + h, l : l + w]
-
-mask = img[:, :, 1] > 100
-mask = (mask * 255).astype(np.uint8)
-mask = cv.resize(mask, (512, 512), interpolation=cv.INTER_NEAREST)
-mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((7, 7)))
-# mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, np.ones((20, 20)))
-
-cnt_inner, cnt_outer = compute_contours(mask)
-
-img = cv.resize(img, (512, 512), interpolation=cv.INTER_NEAREST)
-mask_colored = cv.bitwise_and(img, img, mask=mask)
 
 class ContourStatsState(HigherState):
 
@@ -153,9 +136,9 @@ class ResultView(tk.Toplevel):
         self.state = state
 
         self.canvas = tk.Canvas(self)
-        self.image = Image(self.canvas, self.state.mask_state)
-        self.contour_inner = Contour(self.canvas, self.state.inner_contour_state)
-        self.contour_outer = Contour(self.canvas, self.state.outer_contour_state)
+        self.image = Image(self.canvas, DisplayImageState(self.state.mask_state))
+        self.contour_inner = Contour(self.canvas, DisplayContourState(self.state.inner_contour_state, rectangle_color="blue", rectangle_size=7))
+        self.contour_outer = Contour(self.canvas, DisplayContourState(self.state.outer_contour_state, rectangle_color="red", rectangle_size=7))
 
         self.table = Table(self, state)
 
