@@ -87,14 +87,9 @@ class App(tk.Tk):
         img = app_state.display_image_state.image_state.value
         cnt = self.contour_state.to_numpy()
 
-        shape = app_state.display_image_state.display_image_state.value.shape
+        from .util import transform_contour
 
-        t_x = (app_state.display_image_state.resolution_state.width.value - shape[1]) // 2
-        t_y = (app_state.display_image_state.resolution_state.height.value - shape[0]) // 2
-
-        cnt[:,0] = cnt[:,0] - t_x
-        cnt[:,1] = cnt[:,1] - t_y
-        cnt = np.rint(cnt / app_state.display_image_state.scale_state.value).astype(int)
+        cnt = transform_contour(cnt, app_state.display_image_state)
 
         mask = np.zeros(img.shape[:2], np.uint8)
         mask = cv.drawContours(mask, [cnt], 0, 255, -1)
