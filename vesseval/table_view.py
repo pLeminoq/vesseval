@@ -17,6 +17,7 @@ from .state import (
 from .widgets.canvas.contour import Contour, ContourState, DisplayContourState
 from .widgets.canvas.image import Image
 from .widgets.label import Label
+from .widgets.table import Table, TableState, RowState
 
 
 class CellLayerState(HigherState):
@@ -151,85 +152,6 @@ class CellLayerState(HigherState):
         return FloatState(area)
 
 
-class Table(tk.Frame):
-
-    def __init__(self, parent: tk.Widget, state: CellLayerState):
-        super().__init__(parent)
-
-        self.state = state
-
-        self.label = Label(self, StringState("Inner Length"))
-        self.value = Label(
-            self,
-            state.inner_length.transform(
-                lambda state: StringState(
-                    f"{state.value:.2f} {self.state.size_unit.value}"
-                )
-            ),
-        )
-
-        self.label_2 = Label(self, StringState("Outer Length"))
-        self.value_2 = Label(
-            self,
-            state.outer_length.transform(
-                lambda state: StringState(
-                    f"{state.value:.2f} {self.state.size_unit.value}"
-                )
-            ),
-        )
-
-        self.label_3 = Label(self, StringState("Contour Area"))
-        self.value_3 = Label(
-            self,
-            state.contour_area.transform(
-                lambda state: StringState(
-                    f"{state.value:.2f} {self.state.size_unit.value}²"
-                )
-            ),
-        )
-
-        self.label_4 = Label(self, StringState("Cell Area"))
-        self.value_4 = Label(
-            self,
-            state.cell_area.transform(
-                lambda state: StringState(
-                    f"{state.value:.2f} {self.state.size_unit.value}²"
-                )
-            ),
-        )
-
-        self.label_5 = Label(self, StringState("Surround"))
-        self.value_5 = Label(
-            self,
-            state.surround.transform(
-                lambda state: StringState(f"{100 * state.value:.2f}%")
-            ),
-        )
-
-        self.label_6 = Label(self, StringState("Thickness"))
-        self.value_6 = Label(
-            self,
-            state.thickness.transform(
-                lambda state: StringState(
-                    f"{state.value:.2f} {self.state.size_unit.value}"
-                )
-            ),
-        )
-
-        self.label.grid(column=0, row=0)
-        self.value.grid(column=1, row=0)
-        self.label_2.grid(column=0, row=1)
-        self.value_2.grid(column=1, row=1)
-        self.label_3.grid(column=0, row=2)
-        self.value_3.grid(column=1, row=2)
-        self.label_4.grid(column=0, row=3)
-        self.value_4.grid(column=1, row=3)
-        self.label_5.grid(column=0, row=4)
-        self.value_5.grid(column=1, row=4)
-        self.label_6.grid(column=0, row=5)
-        self.value_6.grid(column=1, row=5)
-
-
 class ResultView(tk.Toplevel):
 
     def __init__(self, state: CellLayerState):
@@ -252,9 +174,61 @@ class ResultView(tk.Toplevel):
             ),
         )
 
-        self.table = Table(self, state)
+        self.table = Table(
+            self,
+            TableState(
+                [
+                    RowState(
+                        key="Inner Length",
+                        value=state.inner_length.transform(
+                            lambda state: StringState(
+                                f"{state.value:.2f} {self.state.size_unit.value}"
+                            )
+                        ),
+                    ),
+                    RowState(
+                        key="Outer Length",
+                        value=state.outer_length.transform(
+                            lambda state: StringState(
+                                f"{state.value:.2f} {self.state.size_unit.value}"
+                            )
+                        ),
+                    ),
+                    RowState(
+                        key="Contour Area",
+                        value=state.contour_area.transform(
+                            lambda state: StringState(
+                                f"{state.value:.2f} {self.state.size_unit.value}²"
+                            )
+                        ),
+                    ),
+                    RowState(
+                        key="Cell Area",
+                        value=state.cell_area.transform(
+                            lambda state: StringState(
+                                f"{state.value:.2f} {self.state.size_unit.value}²"
+                            )
+                        ),
+                    ),
+                    RowState(
+                        key="Surround",
+                        value=state.surround.transform(
+                            lambda state: StringState(f"{100 * state.value:.2f}%")
+                        ),
+                    ),
+                    RowState(
+                        key="Thickness",
+                        value=state.thickness.transform(
+                            lambda state: StringState(
+                                f"{state.value:.2f} {self.state.size_unit.value}"
+                            )
+                        ),
+                    ),
+                ]
+            ),
+        )
 
-        self.canvas.grid(column=0, row=0)
-        self.table.grid(column=0, row=1)
+        self.canvas.grid(column=0, row=0, padx=(5, 5), pady=(5, 5))
+        self.table.grid(column=0, row=1, pady=(5, 5))
 
         self.bind("<Key-q>", lambda event: exit(0))
