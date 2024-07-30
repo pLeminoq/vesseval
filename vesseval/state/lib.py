@@ -51,23 +51,36 @@ class State(object):
         self._active = True
         self.notify_change()
 
+
 class ListState(State):
 
-    modifying_functions = {"append": 1, "clear": 0, "insert": 2, "pop": 1, "remove": 1, "reverse": 0, "sort": 0}
+    modifying_functions = {
+        "append": 1,
+        "clear": 0,
+        "insert": 2,
+        "pop": 1,
+        "remove": 1,
+        "reverse": 0,
+        "sort": 0,
+    }
     static_functions = ["count", "index"]
 
     def __init__(self, value: List[State]):
         super().__init__()
 
         self.value = value
+
         for func_name, nargs in ListState.modifying_functions.items():
-            setattr(self, func_name, self._create_func_with_notification(func_name, nargs))
+            setattr(
+                self, func_name, self._create_func_with_notification(func_name, nargs)
+            )
 
         for func_name in ListState.static_functions:
             setattr(self, func_name, getattr(self.value, func_name))
 
     def _create_func_with_notification(self, func_name, nargs):
         _func = getattr(self.value, func_name)
+
         def func(*args):
             if nargs == 0:
                 _func()
@@ -76,6 +89,7 @@ class ListState(State):
             else:
                 _func(*args)
             self.notify_change()
+
         return func
 
     def __getitem__(self, i: int):
@@ -151,8 +165,15 @@ class BasicState(State):
         """
         self.value = value
 
+    def transform(self, self_to_other: Callable[[State], State]):
+        other_state = self_to_other(self)
+        self.on_change(lambda _self: other_state.set(self_to_other(_self).value))
+        return other_state
+
     def create_transformed_state(
-        self, self_to_other: Callable[[Any], Any], other_to_self: Callable[[Any], Any]=None
+        self,
+        self_to_other: Callable[[Any], Any],
+        other_to_self: Callable[[Any], Any] = None,
     ) -> Self:
         """
         Create a transformed basic state.
