@@ -16,6 +16,7 @@ from .state import (
 )
 from .widgets.canvas.contour import Contour, ContourState, DisplayContourState
 from .widgets.canvas.image import Image
+from .widgets.label import Label
 
 
 class CellLayerState(HigherState):
@@ -44,15 +45,25 @@ class CellLayerState(HigherState):
         self.outer_length = FloatState(self.compute_contour_length(self.outer_contour))
         self.thickness = FloatState(self.compute_thickness())
         for state in [self.scale, self.pixel_size]:
-            state.on_change(lambda _: self.inner_length.set(self.compute_contour_length(self.inner_contour)))
-            state.on_change(lambda _: self.outer_length.set(self.compute_contour_length(self.outer_contour)))
+            state.on_change(
+                lambda _: self.inner_length.set(
+                    self.compute_contour_length(self.inner_contour)
+                )
+            )
+            state.on_change(
+                lambda _: self.outer_length.set(
+                    self.compute_contour_length(self.outer_contour)
+                )
+            )
             state.on_change(lambda _: self.thickness.set(self.compute_thickness()))
 
         self.surround = self.surround(self.inner_contour, self.angle_step)
 
         self.contour_mask = ImageState(self.compute_contour_mask())
         for state in [self.mask, self.inner_contour, self.outer_contour]:
-            state.on_change(lambda state: self.contour_mask.set(self.compute_contour_mask()))
+            state.on_change(
+                lambda state: self.contour_mask.set(self.compute_contour_mask())
+            )
         self.contour_area = self.contour_area(
             self.contour_mask, self.scale, self.pixel_size
         )
@@ -61,8 +72,16 @@ class CellLayerState(HigherState):
         )
 
         for pt in [*self.inner_contour, *self.outer_contour]:
-            pt.on_change(lambda _: self.inner_length.set(self.compute_contour_length(self.inner_contour)))
-            pt.on_change(lambda _: self.outer_length.set(self.compute_contour_length(self.outer_contour)))
+            pt.on_change(
+                lambda _: self.inner_length.set(
+                    self.compute_contour_length(self.inner_contour)
+                )
+            )
+            pt.on_change(
+                lambda _: self.outer_length.set(
+                    self.compute_contour_length(self.outer_contour)
+                )
+            )
             pt.on_change(lambda _: self.thickness.set(self.compute_thickness()))
             pt.on_change(lambda _: self.contour_mask.set(self.compute_contour_mask()))
 
@@ -110,7 +129,6 @@ class CellLayerState(HigherState):
     def surround(self, contour: ContourState, angle_step: IntState) -> FloatState:
         return FloatState(len(contour) * angle_step.value / 360.0)
 
-
     @computed_state
     def contour_area(
         self, contour_mask: ImageState, scale: FloatState, pixel_size: FloatState
@@ -131,16 +149,6 @@ class CellLayerState(HigherState):
         n_pixels = _mask.sum() // 255
         area = n_pixels / (scale.value**2) * (pixel_size.value**2)
         return FloatState(area)
-
-
-
-class Label(tk.Label):
-
-    def __init__(self, parent: tk.Widget, state: StringState):
-        super().__init__(parent, text=state.value)
-
-        self.state = state
-        self.state.on_change(lambda state: self.config(text=state.value))
 
 
 class Table(tk.Frame):
