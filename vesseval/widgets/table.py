@@ -5,6 +5,7 @@ import tkinter as tk
 from ..state import HigherState, ListState, StringState
 from .label import Label
 
+
 class RowState(HigherState):
 
     def __init__(self, key: StringState, value: StringState):
@@ -13,11 +14,11 @@ class RowState(HigherState):
         self.key = key
         self.value = value
 
+
 class TableState(ListState):
 
     def __init__(self, value: List[RowState]):
         super().__init__(value)
-
 
 
 class Table(tk.Frame):
@@ -26,10 +27,17 @@ class Table(tk.Frame):
         super().__init__(parent)
 
         self.state = state
-        self.key_labels = [Label(self, row.key) for row in self.state]
-        self.value_labels = [Label(self, row.value) for row in self.state]
+
+        key_width = max(map(lambda row: len(row.key.value), self.state)) + 2
+        val_width = max(map(lambda row: len(row.value.value), self.state)) + 2
+
+        self.key_labels = [
+            Label(self, row.key, width=key_width, anchor=tk.W, bg="white") for row in self.state
+        ]
+        self.value_labels = [
+            Label(self, row.value, width=val_width) for row in self.state
+        ]
 
         for i, (k_label, v_label) in enumerate(zip(self.key_labels, self.value_labels)):
             k_label.grid(row=i, column=0)
             v_label.grid(row=i, column=1)
-
