@@ -57,6 +57,7 @@ class ListState(State):
     modifying_functions = {
         "append": 1,
         "clear": 0,
+        "extend": 1,
         "insert": 2,
         "pop": 1,
         "remove": 1,
@@ -450,4 +451,3 @@ class SequenceState(HigherState):
         with self:
             for i, arg in enumerate(args):
                 self[i].value = arg
-
