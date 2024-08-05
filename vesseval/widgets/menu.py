@@ -8,8 +8,9 @@ import tkinter as tk
 from tkinter import filedialog
 
 from ..state.app import app_state
-from .file_dialog import FileDialog
+from ..windows.preprocessing import ThresholdView
 
+from .file_dialog import FileDialog
 
 class MenuFile(tk.Menu):
     """
@@ -31,6 +32,23 @@ class MenuFile(tk.Menu):
         """
         FileDialog()
 
+class MenuTools(tk.Menu):
+
+    def __init__(self, menu_bar: tk.Menu):
+        super().__init__(menu_bar)
+
+        menu_bar.add_cascade(menu=self, label="Tools")
+
+        self.add_command(label="Process Contour", command=self.process_contour)
+        app_state.contour_state.on_change(self.on_contour, trigger=True)
+
+    def process_contour(self):
+        ThresholdView()
+
+    def on_contour(self, contour_state):
+        self.entryconfigure(0, state=tk.DISABLED if len(contour_state) < 3 else tk.ACTIVE)
+
+
 
 class MenuBar(tk.Menu):
     """
@@ -44,3 +62,4 @@ class MenuBar(tk.Menu):
         root["menu"] = self
 
         self.menu_file = MenuFile(self)
+        self.menu_tools = MenuTools(self)
