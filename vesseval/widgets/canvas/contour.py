@@ -3,23 +3,10 @@ from typing import List
 import numpy as np
 import tkinter as tk
 
-from ...state import ListState, PointState, HigherState
+from ...state import HigherState, ContourState
 
 from .line import Line, LineState
 from .rectangle import Rectangle, RectangleState
-
-
-class ContourState(ListState):
-
-    def __init__(self, points: List[PointState]):
-        super().__init__(points)
-
-    @classmethod
-    def from_numpy(cls, contour: np.ndarray):
-        return cls([PointState(*pt) for pt in contour])
-
-    def to_numpy(self):
-        return np.array([(pt.x.value, pt.y.value) for pt in self])
 
 
 class DisplayContourState(HigherState):
@@ -55,6 +42,9 @@ class Contour:
     def redraw(self):
         self.clear()
 
+        if len(self.state.contour) == 0:
+            return
+
         for point_state in self.state.contour:
             rectangle = Rectangle(
                 self.canvas,
@@ -69,7 +59,9 @@ class Contour:
             self.canvas_items.append(rectangle)
         lowest_rectanlge = self.canvas_items[0]
 
-        for pt_1, pt_2 in zip(self.state.contour, [*self.state.contour[1:], self.state.contour[0]]):
+        for pt_1, pt_2 in zip(
+            self.state.contour, [*self.state.contour[1:], self.state.contour[0]]
+        ):
             line = Line(self.canvas, LineState(pt_1, pt_2, self.state.line_color))
             line.tag_bind("<Double-Button-1>", self.create_rectangle)
             self.canvas.tag_lower(line.id, lowest_rectanlge.id)
