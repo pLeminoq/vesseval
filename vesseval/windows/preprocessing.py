@@ -5,6 +5,7 @@ import cv2 as cv
 import numpy as np
 
 from ..state import (
+    app_state,
     ResolutionState,
     DisplayImageState,
     ImageState,
@@ -15,6 +16,8 @@ from ..widgets.scale import Scale, ScaleState
 from ..table_view import ResultView, CellLayerState
 
 from .masking_view import MaskingView, MaskingState
+
+from ..util import mask_image
 
 
 def compute_contours(mask, angle_step: int = 10):
@@ -57,8 +60,10 @@ def compute_contours(mask, angle_step: int = 10):
 
 class ThresholdView(tk.Toplevel):
 
-    def __init__(self, image: np.ndarray):
+    def __init__(self):
         super().__init__()
+
+        image = mask_image(app_state)
 
         self.state = DisplayImageState(ImageState(image), ResolutionState(512, 400))
 

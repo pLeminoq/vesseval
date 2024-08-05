@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 
+from .contour import ContourState
 from .image import DisplayImageState, ImageState, ResolutionState
 from .lib import (
     computed_state,
@@ -21,6 +22,7 @@ class AppState(HigherState):
         self.filename_state = StringState("")
         self.pixel_size_state = FloatState(0.74588)
         self.size_unit_state = StringState("μm")
+        self.contour_state = ContourState()
 
         self.display_resolution_state = ResolutionState(1600, 900)
         self.display_image_state = DisplayImageState(

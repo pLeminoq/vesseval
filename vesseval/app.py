@@ -4,15 +4,15 @@ import tkinter as tk
 
 from .state import app_state, PointState
 
-# from .test import ThresholdView
-
 from .widgets.canvas.image import Image
-from .widgets.canvas.contour import Contour, ContourState, DisplayContourState
+from .widgets.canvas.contour import Contour, DisplayContourState
 
 from .widgets.menu import MenuBar
 from .widgets.toolbar import Toolbar
 
 from .windows.preprocessing import ThresholdView
+
+from .util import mask_image
 
 
 class App(tk.Tk):
@@ -25,7 +25,7 @@ class App(tk.Tk):
         self.menu_bar = MenuBar(self)
 
         self.toolbar = Toolbar(self)
-        self.toolbar.grid(column=0, row=0)
+        self.toolbar.grid(column=0, row=0, sticky=tk.W + tk.E)
 
         self.canvas = tk.Canvas(self)
         self.canvas.grid(column=0, row=1)
@@ -34,9 +34,10 @@ class App(tk.Tk):
         self.toolbar.state.bounding_box_mode.on_change(self.on_bb_mode, trigger=True)
 
         self.image = Image(self.canvas, app_state.display_image_state)
-
-        self.contour_state = None
-        self.contour = None
+        self.contour = Contour(
+            self.canvas,
+            DisplayContourState(self.state.contour_state, rectangle_color="white"),
+        )
 
         self.bind("<Key-q>", lambda event: exit(0))
         self.bind("<Return>", self.on_return)
@@ -59,11 +60,11 @@ class App(tk.Tk):
             self.bb_mode_bindings.clear()
 
     def bb_mode_new_contour(self, event):
-        if self.contour is not None:
-            self.contour.clear()
+        if len(self.state.contour_state) > 0:
+            self.state.contour_state.clear()
 
         x, y = event.x, event.y
-        self.contour_state = ContourState(
+        self.state.contour_state.extend(
             [
                 PointState(x, y),
                 PointState(x + 1, y),
@@ -71,31 +72,17 @@ class App(tk.Tk):
                 PointState(x, y + 1),
             ]
         )
-        self.contour = Contour(self.canvas, DisplayContourState(self.contour_state, rectangle_color="white"))
 
     def bb_mode_init_contour(self, event):
         x, y = event.x, event.y
 
-        self.contour_state[1].x.set(x)
-
-        self.contour_state[2].x.set(x)
-        self.contour_state[2].y.set(y)
-
-        self.contour_state[3].y.set(y)
+        self.state.contour_state[1].x.set(x)
+        self.state.contour_state[2].x.set(x)
+        self.state.contour_state[2].y.set(y)
+        self.state.contour_state[3].y.set(y)
 
     def on_return(self, *args):
         img = app_state.display_image_state.image_state.value
-        cnt = self.contour_state.to_numpy()
+        cnt = self.state.contour_state.to_numpy()
 
-        from .util import transform_contour
-
-        cnt = transform_contour(cnt, app_state.display_image_state)
-
-        mask = np.zeros(img.shape[:2], np.uint8)
-        mask = cv.drawContours(mask, [cnt], 0, 255, -1)
-
-        l, t, w, h = cv.boundingRect(cnt)
-        _img = cv.bitwise_and(img, img, mask=mask)
-        _img = _img[t : t + h, l : l + w]
-
-        ThresholdView(_img)
+        ThresholdView()
