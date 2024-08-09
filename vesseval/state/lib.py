@@ -2,7 +2,7 @@
 Implementation of states.
 """
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from typing_extensions import Self
 
 
@@ -101,6 +101,14 @@ class ListState(State):
 
     def __len__(self):
         return len(self.value)
+
+    def serialize(self):
+        return [value.serialize() for value in self]
+
+    def deserialize(self, _list: List[Dict[str, Any]]):
+        raise TypeError(
+            "Unable to deserialize list state, since types of elements in list are unknown"
+        )
 
 
 class BasicState(State):
@@ -207,6 +215,9 @@ class BasicState(State):
     def __repr__(self):
         return f"{type(self).__name__}[value={self.value}]"
 
+    def serialize(self):
+        return self.value
+
 
 class IntState(BasicState):
     """
@@ -250,6 +261,23 @@ class StringState(BasicState):
     def __repr__(self):
         return f'{type(self).__name__}[value="{self.value}"]'
 
+    def to_tk_string_var(self):
+        """
+        Create a `tk.StringVar` connected to this `StringState`.
+
+        This means that both will have the same value all the time.
+
+        Returns
+        -------
+        tk.StringVar
+        """
+        import tkinter as tk
+
+        string_var = tk.StringVar(value=self.value)
+        string_var.trace_add("write", lambda *args: self.set(string_var.get()))
+        self.on_change(lambda state: string_var.set(self.value))
+        return string_var
+
 
 class BoolState(BasicState):
     """
@@ -271,6 +299,9 @@ class ObjectState(BasicState):
     def __init__(self, value: Any):
         super().__init__(value, verify_change=False)
 
+    def serialize(self):
+        raise TypeError(f"Unable to serialize general object state")
+
 
 # Mapping of primitive values types to their states.
 BASIC_STATE_DICT = {
@@ -286,7 +317,7 @@ class HigherState(State):
     A higher state is a collection of other states.
 
     A higher state automatically notifies a change if one of its internal states change.
-    If a some value (not a state) is added to a higher state, it will automatically be wrapped into
+    If a value (not a state) is added to a higher state, it will automatically be wrapped into
     a state type.
     """
 
@@ -328,6 +359,30 @@ class HigherState(State):
         """
         labels = list(filter(lambda l: not l.startswith("_"), self.__dict__.keys()))
         return dict([(label, self.__getattribute__(label)) for label in labels])
+
+    def serialize(self):
+        res = {}
+        for key, value in self.dict().items():
+            try:
+                res[key] = value.serialize()
+            except TypeError:
+                pass
+        return res
+
+    def deserialize(self, _dict: Dict[str, Any]) -> Self:
+        with self:
+            for key, value in _dict.items():
+                attr = self.__getattribute__(key)
+
+                if issubclass(type(attr), BasicState):
+                    attr.value = value
+                    continue
+
+                attr.deserialize(value)
+
+        # pass
+        # with self:
+        # for key, value in _dict.items():
 
     def __str__(self, padding=0):
         _strs = []

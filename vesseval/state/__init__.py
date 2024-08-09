@@ -22,9 +22,7 @@ from .point import PointState
 __all__ = [
     "app_state",
     "AppState",
-
     "ContourState",
-
     "computed_state",
     "FloatState",
     "IntState",
@@ -35,10 +33,8 @@ __all__ = [
     "HigherState",
     "SequenceState",
     "State",
-
     "DisplayImageState",
     "ImageState",
     "ResolutionState",
-
     "PointState",
 ]

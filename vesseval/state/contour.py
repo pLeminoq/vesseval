@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 
@@ -16,3 +16,12 @@ class ContourState(ListState):
 
     def to_numpy(self):
         return np.array([(pt.x.value, pt.y.value) for pt in self])
+
+    def deserialize(self, points: List[Dict[str, int]]):
+        with self:
+            self.clear()
+
+            for pt in points:
+                self.append(PointState(**pt))
+
+
