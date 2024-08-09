@@ -6,6 +6,44 @@ import numpy as np
 from .state import AppState, DisplayImageState
 
 
+def compute_contours(mask: np.ndarray, angle_step: int = 10):
+    cnt_inner = []
+    cnt_outer = []
+
+    center = np.array(mask.shape[::-1]) / 2
+    for angle_deg in range(0, 360, angle_step):
+        angle = np.deg2rad(angle_deg)
+        direction = np.array([np.cos(angle), np.sin(angle)]) * max(mask.shape)
+
+        _line = np.zeros(mask.shape, np.uint8)
+        _line = cv.line(
+            _line,
+            tuple(center.astype(int)),
+            tuple((center + direction).astype(int)),
+            255,
+            1,
+        )
+        _line = cv.bitwise_and(mask, mask, mask=_line)
+        left, top, width, height = cv.boundingRect(_line)
+        if width == 0 and height == 0:
+            continue
+
+        if 0 <= angle_deg < 90:
+            cnt_inner.append((left, top))
+            cnt_outer.append((left + width, top + height))
+        elif 90 <= angle_deg < 180:
+            cnt_inner.append((left + width, top))
+            cnt_outer.append((left, top + height))
+        elif 180 <= angle_deg < 270:
+            cnt_inner.append((left + width, top + height))
+            cnt_outer.append((left, top))
+        else:
+            cnt_inner.append((left, top + height))
+            cnt_outer.append((left + width, top))
+
+    return np.array(cnt_inner), np.array(cnt_outer)
+
+
 def transform_contour(
     contour: np.ndarray, display_image_state: DisplayImageState
 ) -> np.ndarray:

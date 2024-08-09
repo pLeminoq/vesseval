@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import tkinter as tk
 
-from ...state import HigherState, ContourState
+from ...state import HigherState, ContourState, PointState
 
 from .line import Line, LineState
 from .rectangle import Rectangle, RectangleState

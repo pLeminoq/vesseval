@@ -104,6 +104,13 @@ class CellLayerState(HigherState):
         return length
 
     def compute_thickness(self):
+        _inner = self.inner_contour.to_numpy()
+        _outer = self.outer_contour.to_numpy()
+
+        pts = [tuple([int(a) for a in pt]) for pt in _inner]
+        dists = list(map(lambda pt: cv.pointPolygonTest(_outer, pt, measureDist=True), pts))
+        print(f"Average: {np.average(dists) / self.scale.value * self.pixel_size.value}")
+
         diff = self.inner_contour.to_numpy() - self.outer_contour.to_numpy()
         distances = np.linalg.norm(diff, axis=1)
         thickness = np.average(distances) / self.scale.value * self.pixel_size.value
