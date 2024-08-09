@@ -71,5 +71,22 @@ class AppState(HigherState):
         file_image = os.path.join(_dir, "image.png")
         cv.imwrite(file_image, cv.imread(self.filename_state.value))
 
+    def load(self, _dir: str):
+        print(f"Restore app state from {_dir}")
+
+        state_json = os.path.join(_dir, "app_state.json")
+        if not os.path.isfile(state_json):
+            print(f"Cannot find file {state_json} to restore state")
+            return
+
+        with self:
+            with open(state_json, mode="r") as f:
+                self.deserialize(json.load(f))
+
+            file_image = os.path.join(_dir, "image.png")
+            if os.path.isfile(file_image):
+                self.filename_state.value = file_image
+
+
 
 app_state = AppState()

@@ -7,7 +7,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
-from ...state.app import app_state
+from ...state import app_state, StringState
 from ..preprocessing import PreprocessingView
 from ..dialog.open import OpenFileDialog, OpenDirectoryDialog
 
@@ -28,6 +28,8 @@ class MenuFile(tk.Menu):
         self.add_separator()
         self.add_command(label="Save", command=self.save)
         self.add_command(label="Save As", command=self.save_as)
+        self.add_separator()
+        self.add_command(label="Load", command=self.load)
 
         app_state.save_directory.on_change(
             lambda save_directory: self.entryconfigure(
@@ -47,6 +49,12 @@ class MenuFile(tk.Menu):
 
     def save(self):
         app_state.save()
+
+    def load(self):
+        load_directory = StringState("")
+        load_directory.on_change(lambda state: app_state.load(state.value))
+
+        OpenDirectoryDialog(load_directory, label="Save Directory")
 
 
 class MenuTools(tk.Menu):
