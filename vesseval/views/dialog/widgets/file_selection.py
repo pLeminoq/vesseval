@@ -5,13 +5,17 @@ from ....state import StringState, HigherState
 from ....widgets import Label
 from ....widgets import TextField
 
+
 class FileSelectionState(HigherState):
 
-    def __init__(self, label: StringState, filename: StringState = ""):
+    def __init__(
+        self, label: StringState, filename: StringState = "", file_type="file"
+    ):
         super().__init__()
 
         self.label = label
         self.filename = filename
+        self.file_type = file_type
 
 
 class FileSelection(tk.Frame):
@@ -44,7 +48,11 @@ class FileSelection(tk.Frame):
             self,
             text="Open",
             width=15,
-            command=lambda *args: self.state.filename.set(filedialog.askopenfilename()),
+            command=lambda *args: self.state.filename.set(
+                filedialog.askopenfilename()
+                if self.state.file_type.value == "file"
+                else filedialog.askdirectory()
+            ),
         )
 
         self.label.grid(column=0, row=0, padx=5)

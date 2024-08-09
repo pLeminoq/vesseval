@@ -14,7 +14,7 @@ from .widgets import FileSelection, FileSelectionState
 
 class AbstractOpenDialog(tk.Toplevel):
 
-    def __init__(self, filename_state: StringState, label: str = "Image"):
+    def __init__(self, filename_state: StringState, label: str = "Image", file_type: str = "file"):
         super().__init__()
 
         self.filename_state = filename_state
@@ -25,6 +25,7 @@ class AbstractOpenDialog(tk.Toplevel):
                 # value only occurs on confirmation
                 label=label,
                 filename=self.filename_state.value,
+                file_type=file_type,
             ),
         )
 
@@ -81,7 +82,7 @@ class OpenDirectoryDialog(AbstractOpenDialog):
     """
 
     def __init__(self, filename_state: StringState, label: str = "Directory"):
-        super().__init__(filename_state, label)
+        super().__init__(filename_state, label, file_type="directory")
 
     def selection_is_valid(self):
         """
