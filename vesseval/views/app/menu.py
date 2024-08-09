@@ -9,7 +9,7 @@ from tkinter import filedialog
 
 from ...state.app import app_state
 from ..preprocessing import PreprocessingView
-from ..dialog.open_image import OpenImageDialog
+from ..dialog.open import OpenFileDialog, OpenDirectoryDialog
 
 
 class MenuFile(tk.Menu):
@@ -25,12 +25,28 @@ class MenuFile(tk.Menu):
 
         # add commands
         self.add_command(label="Open", command=self.open)
+        self.add_separator()
+        self.add_command(label="Save", command=self.save)
+        self.add_command(label="Save As", command=self.save_as)
+
+        app_state.save_directory.on_change(
+            lambda save_directory: self.entryconfigure(
+                2, state=tk.DISABLED if save_directory.value == "" else tk.ACTIVE
+            ),
+            trigger=True,
+        )
 
     def open(self):
         """
         Open a new image with a user dialog.
         """
-        OpenImageDialog()
+        OpenFileDialog(app_state.filename_state, label="Image")
+
+    def save_as(self):
+        OpenDirectoryDialog(app_state.save_directory, label="Save Directory")
+
+    def save(self):
+        app_state.save()
 
 
 class MenuTools(tk.Menu):
@@ -40,7 +56,9 @@ class MenuTools(tk.Menu):
 
         menu_bar.add_cascade(menu=self, label="Tools")
 
-        self.add_command(label="Process Contour", command=lambda *args: PreprocessingView())
+        self.add_command(
+            label="Process Contour", command=lambda *args: PreprocessingView()
+        )
         app_state.contour_state.on_change(self.on_contour, trigger=True)
 
     def on_contour(self, contour_state):
