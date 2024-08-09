@@ -5,6 +5,7 @@ import numpy as np
 from .lib import ListState
 from .point import PointState
 
+
 class ContourState(ListState):
 
     def __init__(self, points: List[PointState] = None):
@@ -23,5 +24,3 @@ class ContourState(ListState):
 
             for pt in points:
                 self.append(PointState(**pt))
-
-

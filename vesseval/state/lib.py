@@ -19,6 +19,7 @@ class State(object):
     def __init__(self):
         self._callbacks: List[Callable[[Self], None]] = []
         self._active = True
+        self._enter_count = 0
 
     def on_change(self, callback: Callable[[Self], None], trigger=False):
         """
@@ -44,12 +45,15 @@ class State(object):
             cb(self)
 
     def __enter__(self):
+        self._enter_count += 1
         self._active = False
         return self
 
     def __exit__(self, *args):
-        self._active = True
-        self.notify_change()
+        self._enter_count = max(self._enter_count - 1, 0)
+        if self._enter_count == 0:
+            self._active = True
+            self.notify_change()
 
 
 class ListState(State):
@@ -375,7 +379,9 @@ class HigherState(State):
                 attr = self.__getattribute__(key)
 
                 if issubclass(type(attr), BasicState):
+                    attr._active = False
                     attr.value = value
+                    attr._active = True
                     continue
 
                 attr.deserialize(value)

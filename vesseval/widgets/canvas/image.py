@@ -36,3 +36,4 @@ class Image(CanvasItem):
             height // 2,
             image=self.img_tk,
         )
+        self.canvas.tag_lower(self.img_id)
