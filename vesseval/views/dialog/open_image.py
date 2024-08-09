@@ -29,8 +29,9 @@ class OpenImageDialog(tk.Toplevel):
             ),
         )
         self.button = ttk.Button(self, text="Confirm", command=self.on_confirm)
+        self.enable_button()
 
-        self.file_selection.state.filename.on_change(self.enable_button, trigger=True)
+        self.file_selection.state.filename.on_change(self.on_confirm)
 
         self.file_selection.grid(column=0, row=0, pady=5)
         self.button.grid(column=0, row=1, pady=5)
