@@ -91,3 +91,35 @@ def mask_image(
 
     image = cv.bitwise_and(image, image, mask=mask)
     return image
+
+
+def compute_thickness(contour_inner: np.ndarray, contour_outer: np.ndarray) -> float:
+    """
+    Compute the thickness of a cell layer of a vessel.
+
+    The thickness is estimated as the average closest distance of each point
+    in `contour_inner` to `contour_outer`.
+
+    Parameters
+    ----------
+    contour_inner: np.ndarray
+        contour following the inner border of the cell layer of the vessel
+    contour_outer: np.ndarray
+        contour following the outer border of the cell layer of the vessel
+
+    Returns
+    -------
+    float
+        the estimated distance in pixels
+    """
+    # format contour as list of points with integer coordinates
+    points = [tuple([int(v) for v in point]) for point in contour_inner]
+    # compute closest distance from each point in `contour_inner` to `contour_outer`
+    distances = list(
+        map(
+            lambda point: cv.pointPolygonTest(contour_outer, point, measureDist=True),
+            points,
+        )
+    )
+    # estimate thickness as the absolute average distance
+    return np.average(np.absolute(distances))

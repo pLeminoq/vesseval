@@ -18,6 +18,7 @@ from .widgets.canvas.contour import Contour, ContourState, DisplayContourState
 from .widgets.canvas.image import Image
 from .widgets.label import Label
 from .widgets.table import Table, TableState, RowState
+from .util import compute_thickness
 
 
 class CellLayerState(HigherState):
@@ -44,7 +45,7 @@ class CellLayerState(HigherState):
 
         self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
         self.outer_length = FloatState(self.compute_contour_length(self.outer_contour))
-        self.thickness = FloatState(self.compute_thickness())
+        self.thickness = FloatState(self._compute_thickness())
         for state in [self.scale, self.pixel_size]:
             state.on_change(
                 lambda _: self.inner_length.set(
@@ -56,7 +57,7 @@ class CellLayerState(HigherState):
                     self.compute_contour_length(self.outer_contour)
                 )
             )
-            state.on_change(lambda _: self.thickness.set(self.compute_thickness()))
+            state.on_change(lambda _: self.thickness.set(self._compute_thickness()))
 
         self.surround = self.surround(self.inner_contour, self.angle_step)
 
@@ -64,6 +65,17 @@ class CellLayerState(HigherState):
         for state in [self.mask, self.inner_contour, self.outer_contour]:
             state.on_change(
                 lambda state: self.contour_mask.set(self.compute_contour_mask())
+            )
+            state.on_change(lambda _: self.thickness.set(self._compute_thickness()))
+            state.on_change(
+                lambda _: self.inner_length.set(
+                    self.compute_contour_length(self.inner_contour)
+                )
+            )
+            state.on_change(
+                lambda _: self.outer_length.set(
+                    self.compute_contour_length(self.outer_contour)
+                )
             )
         self.contour_area = self.contour_area(
             self.contour_mask, self.scale, self.pixel_size
@@ -83,7 +95,7 @@ class CellLayerState(HigherState):
                     self.compute_contour_length(self.outer_contour)
                 )
             )
-            pt.on_change(lambda _: self.thickness.set(self.compute_thickness()))
+            pt.on_change(lambda _: self.thickness.set(self._compute_thickness()))
             pt.on_change(lambda _: self.contour_mask.set(self.compute_contour_mask()))
 
         self.colored_mask = self.colored_mask(self.image, self.mask)
@@ -103,18 +115,12 @@ class CellLayerState(HigherState):
         length = length * self.scale.value * self.pixel_size.value
         return length
 
-    def compute_thickness(self):
-        _inner = self.inner_contour.to_numpy()
-        _outer = self.outer_contour.to_numpy()
+    def _compute_thickness(self):
+        contour_inner = self.inner_contour.to_numpy()
+        contour_outer = self.outer_contour.to_numpy()
 
-        pts = [tuple([int(a) for a in pt]) for pt in _inner]
-        dists = list(map(lambda pt: cv.pointPolygonTest(_outer, pt, measureDist=True), pts))
-        print(f"Average: {np.average(dists) / self.scale.value * self.pixel_size.value}")
-
-        diff = self.inner_contour.to_numpy() - self.outer_contour.to_numpy()
-        distances = np.linalg.norm(diff, axis=1)
-        thickness = np.average(distances) / self.scale.value * self.pixel_size.value
-        return thickness
+        thickness = compute_thickness(contour_inner, contour_outer)
+        return (thickness * self.pixel_size.value) / self.scale.value
 
     @computed_state
     def colored_mask(self, image: ImageState, mask: ImageState):
