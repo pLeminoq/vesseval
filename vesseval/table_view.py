@@ -43,15 +43,19 @@ class CellLayerState(HigherState):
         self.pixel_size = app_state.pixel_size_state
         self.size_unit = app_state.size_unit_state
 
-        self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
+        self.inner_length = FloatState(0)
+        self.inner_length.depends_on([self.inner_contour], lambda *args: self.compute_contour_length(self.inner_contour), init=True, recursive=True)
+        # self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
         self.outer_length = FloatState(self.compute_contour_length(self.outer_contour))
         self.thickness = FloatState(self._compute_thickness())
+        # self.thickness = FloatState(0)
+        # self.thickness.depends_on([self.inner_contour, self.outer_contour, *self.inner_contour, *self.outer_contour])
         for state in [self.scale, self.pixel_size]:
-            state.on_change(
-                lambda _: self.inner_length.set(
-                    self.compute_contour_length(self.inner_contour)
-                )
-            )
+            # state.on_change(
+                # lambda _: self.inner_length.set(
+                    # self.compute_contour_length(self.inner_contour)
+                # )
+            # )
             state.on_change(
                 lambda _: self.outer_length.set(
                     self.compute_contour_length(self.outer_contour)
@@ -67,11 +71,11 @@ class CellLayerState(HigherState):
                 lambda state: self.contour_mask.set(self.compute_contour_mask())
             )
             state.on_change(lambda _: self.thickness.set(self._compute_thickness()))
-            state.on_change(
-                lambda _: self.inner_length.set(
-                    self.compute_contour_length(self.inner_contour)
-                )
-            )
+            # state.on_change(
+                # lambda _: self.inner_length.set(
+                    # self.compute_contour_length(self.inner_contour)
+                # )
+            # )
             state.on_change(
                 lambda _: self.outer_length.set(
                     self.compute_contour_length(self.outer_contour)
@@ -85,11 +89,11 @@ class CellLayerState(HigherState):
         )
 
         for pt in [*self.inner_contour, *self.outer_contour]:
-            pt.on_change(
-                lambda _: self.inner_length.set(
-                    self.compute_contour_length(self.inner_contour)
-                )
-            )
+            # pt.on_change(
+                # lambda _: self.inner_length.set(
+                    # self.compute_contour_length(self.inner_contour)
+                # )
+            # )
             pt.on_change(
                 lambda _: self.outer_length.set(
                     self.compute_contour_length(self.outer_contour)
