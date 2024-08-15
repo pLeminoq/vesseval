@@ -44,7 +44,7 @@ class CellLayerState(HigherState):
         self.size_unit = app_state.size_unit_state
 
         self.inner_length = FloatState(0)
-        self.inner_length.depends_on([self.inner_contour], lambda *args: self.compute_contour_length(self.inner_contour), init=True, recursive=True)
+        self.inner_length.depends_on([self.inner_contour], lambda *args: self.compute_contour_length(self.inner_contour), init=True, element_wise=True)
         # self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
         self.outer_length = FloatState(self.compute_contour_length(self.outer_contour))
         self.thickness = FloatState(self._compute_thickness())
