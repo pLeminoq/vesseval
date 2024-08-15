@@ -91,8 +91,8 @@ class ListState(State):
         self._list = []
         self.extend(_list)
 
-    def on_change(self, callback: Callable[[Self], None], trigger: bool = False, recursive=False) -> int:
-        if recursive:
+    def on_change(self, callback: Callable[[Self], None], trigger: bool = False, element_wise=False) -> int:
+        if element_wise:
             self._elem_obs._callbacks.append(callback)
 
         return super().on_change(callback, trigger=trigger)
@@ -247,11 +247,11 @@ class BasicState(State):
         self.value = value
 
     def depends_on(
-        self, states: List[State], compute_value: Callable[[None], Any], init=False, recursive=False,
+        self, states: List[State], compute_value: Callable[[None], Any], init=False, element_wise=False,
     ):
         for state in states:
             if issubclass(type(state), ListState):
-                state.on_change(lambda _: self.set(compute_value()), recursive=recursive)
+                state.on_change(lambda _: self.set(compute_value()), element_wise=element_wise)
                 continue
 
             state.on_change(lambda _: self.set(compute_value()))
