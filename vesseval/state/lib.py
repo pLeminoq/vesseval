@@ -2,7 +2,7 @@
 Implementation of states.
 """
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 from typing_extensions import Self
 
 
@@ -13,7 +13,7 @@ class State(object):
     It contains a list of callbacks.
     Callbacks are registered with `on_change` and called when `notify_change` is triggered.
     Note that all attributes of a state that start with an underscore are private, not wrapped and changes are not tracked.
-    Regarding higher states, note that you can use `with _state_:` to change multiple values before notifying.
+    Regarding higher states, note that you can use `with <state>:` to change multiple values before notifying.
     """
 
     def __init__(self):
@@ -21,18 +21,34 @@ class State(object):
         self._active = True
         self._enter_count = 0
 
-    def on_change(self, callback: Callable[[Self], None], trigger=False):
+    def on_change(self, callback: Callable[[Self], None], trigger: bool = False) -> int:
         """
         Register a callback on this state.
 
         Parameters
         ----------
         callback: callable
+            the callable to be registered
+        trigger: bool
+            if true, call the callback after registering
+
+        Returns
+        -------
+        int
+            an id of the callback which can be used to remove it
         """
         self._callbacks.append(callback)
 
         if trigger:
             callback(self)
+
+        return len(self._callbacks) - 1
+
+    def remove_callback(self, callback_or_id: Union[Callable[[Self], None], int]):
+        if type(callback_or_id) is int:
+            self._callbacks.pop(callback_or_id)
+        else:
+            self._callbacks.remove(callback_or_id)
 
     def notify_change(self):
         """
@@ -55,56 +71,108 @@ class State(object):
             self._active = True
             self.notify_change()
 
+class ElementObserver:
+
+    def __init__(self, list_state: "ListState"):
+        self._callbacks = []
+        self._list_state = list_state
+
+    def __call__(self, state: State):
+        for cb in self._callbacks:
+            cb(self._list_state)
 
 class ListState(State):
 
-    modifying_functions = {
-        "append": 1,
-        "clear": 0,
-        "extend": 1,
-        "insert": 2,
-        "pop": 1,
-        "remove": 1,
-        "reverse": 0,
-        "sort": 0,
-    }
-    static_functions = ["count", "index"]
-
-    def __init__(self, value: List[State]):
+    def __init__(self, _list: List[State] = []):
         super().__init__()
 
-        self.value = value
+        self._elem_obs = ElementObserver(self)
 
-        for func_name, nargs in ListState.modifying_functions.items():
-            setattr(
-                self, func_name, self._create_func_with_notification(func_name, nargs)
-            )
+        self._list = []
+        self.extend(_list)
 
-        for func_name in ListState.static_functions:
-            setattr(self, func_name, getattr(self.value, func_name))
+    def on_change(self, callback: Callable[[Self], None], trigger: bool = False, recursive=False) -> int:
+        if recursive:
+            self._elem_obs._callbacks.append(callback)
 
-    def _create_func_with_notification(self, func_name, nargs):
-        _func = getattr(self.value, func_name)
+        return super().on_change(callback, trigger=trigger)
 
-        def func(*args):
-            if nargs == 0:
-                _func()
-            elif nargs == 1:
-                _func(args[0])
-            else:
-                _func(*args)
-            self.notify_change()
+    def remove_callback(self, callback_or_id: Union[Callable[[Self], None], int]):
+        if type(callback_or_id) is int:
+            cb = self._callbacks.pop(callback_or_id)
+        else:
+            self._callbacks.remove(callback_or_id)
+            cb = callback_or_id
 
-        return func
+        if cb in self._elem_obs._callbacks:
+            self._elem_obs._callbacks.remove(cb)
 
-    def __getitem__(self, i: int):
-        return self.value[i]
+    def append(self, elem: State):
+        self._list.append(elem)
+        
+        elem.on_change(self._elem_obs)
+
+        self.notify_change()
+
+    def clear(self):
+        for elem in self._list:
+            elem.remove_callback(self._elem_obs)
+
+        self._list.clear()
+
+        self.notify_change()
+
+    def extend(self, _list: List[State]):
+        # use `with` to notify just once after appending all elements
+        with self:
+            for elem in _list:
+                self.append(elem)
+
+    def insert(self, index: int, elem: State):
+        self._list.insert(index, elem)
+
+        elem.on_change(self._elem_obs)
+
+        self.notify_change()
+
+    def pop(self, index: int = -1) -> State:
+        elem = self._list.pop(index)
+
+        elem.remove_callback(self._elem_obs)
+
+        self.notify_change()
+
+        return elem
+
+    def remove(self, elem: State):
+        self._list.remove(elem)
+
+        elem.remove_callback(self._elem_obs)
+        
+        self.notify_change()
+
+    def reverse(self):
+        self._list.reverse()
+        self.notify_change()
+
+    def sort(self):
+        self._list.sort()
+        self.notify_change()
+
+    def __getitem__(self, i: int) -> State:
+        return self._list[i]
+
+    def count(self) -> int:
+        return self._list.count()
+
+    def index(self, elem: State) -> int:
+        return self._list.index(elem)
 
     def __iter__(self):
-        return iter(self.value)
+        return iter(self._list)
 
     def __len__(self):
-        return len(self.value)
+        return len(self._list)
 
     def serialize(self):
         return [value.serialize() for value in self]
@@ -177,6 +245,18 @@ class BasicState(State):
             the new value
         """
         self.value = value
+
+    def depends_on(
+        self, states: List[State], compute_value: Callable[[None], Any], init=False, recursive=False,
+    ):
+        for state in states:
+            if issubclass(type(state), ListState):
+                state.on_change(lambda _: self.set(compute_value()), recursive=recursive)
+                continue
+
+            state.on_change(lambda _: self.set(compute_value()))
+
+        self.set(compute_value())
 
     def transform(self, self_to_other: Callable[[State], State]):
         other_state = self_to_other(self)
