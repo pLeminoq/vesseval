@@ -1,3 +1,8 @@
+import json
+import os
+import shutil
+import tempfile
+
 import cv2 as cv
 import numpy as np
 import tkinter as tk
@@ -19,6 +24,7 @@ from .widgets.canvas.image import Image
 from .widgets.label import Label
 from .widgets.table import Table, TableState, RowState
 from .util import compute_thickness
+from .views.dialog.open import SaveAsFileDialog
 
 
 class CellLayerState(HigherState):
@@ -44,7 +50,12 @@ class CellLayerState(HigherState):
         self.size_unit = app_state.size_unit_state
 
         self.inner_length = FloatState(0)
-        self.inner_length.depends_on([self.inner_contour], lambda *args: self.compute_contour_length(self.inner_contour), init=True, element_wise=True)
+        self.inner_length.depends_on(
+            [self.inner_contour],
+            lambda *args: self.compute_contour_length(self.inner_contour),
+            init=True,
+            element_wise=True,
+        )
         # self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
         self.outer_length = FloatState(self.compute_contour_length(self.outer_contour))
         self.thickness = FloatState(self._compute_thickness())
@@ -52,9 +63,9 @@ class CellLayerState(HigherState):
         # self.thickness.depends_on([self.inner_contour, self.outer_contour, *self.inner_contour, *self.outer_contour])
         for state in [self.scale, self.pixel_size]:
             # state.on_change(
-                # lambda _: self.inner_length.set(
-                    # self.compute_contour_length(self.inner_contour)
-                # )
+            # lambda _: self.inner_length.set(
+            # self.compute_contour_length(self.inner_contour)
+            # )
             # )
             state.on_change(
                 lambda _: self.outer_length.set(
@@ -72,9 +83,9 @@ class CellLayerState(HigherState):
             )
             state.on_change(lambda _: self.thickness.set(self._compute_thickness()))
             # state.on_change(
-                # lambda _: self.inner_length.set(
-                    # self.compute_contour_length(self.inner_contour)
-                # )
+            # lambda _: self.inner_length.set(
+            # self.compute_contour_length(self.inner_contour)
+            # )
             # )
             state.on_change(
                 lambda _: self.outer_length.set(
@@ -90,9 +101,9 @@ class CellLayerState(HigherState):
 
         for pt in [*self.inner_contour, *self.outer_contour]:
             # pt.on_change(
-                # lambda _: self.inner_length.set(
-                    # self.compute_contour_length(self.inner_contour)
-                # )
+            # lambda _: self.inner_length.set(
+            # self.compute_contour_length(self.inner_contour)
+            # )
             # )
             pt.on_change(
                 lambda _: self.outer_length.set(
@@ -124,7 +135,7 @@ class CellLayerState(HigherState):
         contour_outer = self.outer_contour.to_numpy()
 
         thickness = compute_thickness(contour_inner, contour_outer)
-        return (thickness * self.pixel_size.value) / self.scale.value
+        return float((thickness * self.pixel_size.value) / self.scale.value)
 
     @computed_state
     def colored_mask(self, image: ImageState, mask: ImageState):
@@ -167,6 +178,40 @@ class CellLayerState(HigherState):
         n_pixels = _mask.sum() // 255
         area = n_pixels / (scale.value**2) * (pixel_size.value**2)
         return FloatState(area)
+
+
+class ResultViewState(HigherState):
+
+    def __init__(
+        self, cell_layer_state_1: CellLayerState, cell_layer_state_2: CellLayerState
+    ):
+        super().__init__()
+
+        self.cell_layer_state_1 = cell_layer_state_1
+        self.cell_layer_state_2 = cell_layer_state_2
+
+        self.save_filename = StringState("")
+        self.save_filename.on_change(lambda _: self.save())
+
+    def save(self):
+        with tempfile.TemporaryDirectory() as _dir:
+
+            filename_state = os.path.join(_dir, "state.json")
+            with open(filename_state, mode="w") as f:
+                json.dump(self.serialize(), f, indent=2)
+
+            image = self.cell_layer_state_1.image.value
+            filename_image = os.path.join(_dir, "image.png")
+            cv.imwrite(filename_image, image)
+
+            for i, cell_layer_state in enumerate([self.cell_layer_state_1, self.cell_layer_state_2]):
+                mask = cell_layer_state.mask.value
+                filename_mask = os.path.join(_dir, f"mask_{i}.png")
+                cv.imwrite(filename_mask, mask)
+
+            _save_filename, _ = os.path.splitext(self.save_filename.value)
+            shutil.make_archive(_save_filename, format="zip", root_dir=_dir)
+
 
 
 class CellLayerView(tk.Frame):
@@ -248,15 +293,55 @@ class CellLayerView(tk.Frame):
         self.canvas.grid(column=0, row=0, padx=(5, 5), pady=(5, 5))
         self.table.grid(column=0, row=1, pady=(5, 5))
 
+
+class MenuFileResult(tk.Menu):
+
+    def __init__(self, menu_bar: tk.Menu, state: ResultViewState):
+        super().__init__(menu_bar)
+
+        self.state = state
+        self.save_filename = self.state.save_filename
+
+        menu_bar.add_cascade(menu=self, label="File")
+
+        self.add_command(label="Save", command=self.save)
+        self.add_command(label="Save as", command=self.save_as)
+
+        self.save_filename.on_change(
+            lambda state: self.entryconfigure(
+                0, state=tk.DISABLED if state.value == "" else tk.ACTIVE
+            ),
+            trigger=True,
+        )
+
+    def save(self):
+        self.state.save()
+
+    def save_as(self):
+        SaveAsFileDialog(self.save_filename)
+
+
+class ResultMenuBar(tk.Menu):
+    def __init__(self, top_level: tk.Toplevel, state: ResultViewState):
+        super().__init__(top_level)
+
+        top_level.option_add("*tearOff", False)
+        top_level["menu"] = self
+
+        self.menu_file = MenuFileResult(self, state)
+
+
 class ResultView(tk.Toplevel):
 
-    def __init__(self, cell_layer_states):
+    def __init__(self, state: ResultViewState):
         super().__init__()
 
-        self.cell_layer_states = cell_layer_states
+        self.state = state
 
-        self.cell_layer_view_1 = CellLayerView(self, cell_layer_states[0])
-        self.cell_layer_view_2 = CellLayerView(self, cell_layer_states[1])
+        self.menu_bar = ResultMenuBar(self, self.state)
+
+        self.cell_layer_view_1 = CellLayerView(self, self.state.cell_layer_state_1)
+        self.cell_layer_view_2 = CellLayerView(self, self.state.cell_layer_state_2)
         self.button = ttk.Button(self, text="Copy", command=self.on_copy)
 
         self.cell_layer_view_1.grid(row=0, column=0, padx=5)
@@ -267,7 +352,7 @@ class ResultView(tk.Toplevel):
 
     def on_copy(self, *args):
         values = []
-        for state in self.cell_layer_states:
+        for state in [self.state.cell_layer_state_1, self.state.cell_layer_state_2]:
             values.append(state.inner_length.value)
             values.append(state.outer_length.value)
             values.append(state.contour_area.value)
@@ -278,4 +363,3 @@ class ResultView(tk.Toplevel):
 
         self.clipboard_clear()
         self.clipboard_append("\t".join(values))
-

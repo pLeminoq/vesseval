@@ -13,7 +13,7 @@ from ...state import (
 )
 from ...widgets.canvas import Image
 from ...widgets import Scale, ScaleState
-from ...table_view import ResultView, CellLayerState
+from ...table_view import ResultView, CellLayerState, ResultViewState
 from ...util import compute_contours, mask_image
 
 from .masking import MaskingView, MaskingState
@@ -76,7 +76,7 @@ class PreprocessingView(tk.Toplevel):
             angle_step=angle_step,
         )
 
-        ResultView([cell_layer_state_1, cell_layer_state_2])
+        ResultView(ResultViewState(cell_layer_state_1, cell_layer_state_2))
 
         self.withdraw()
         self.destroy()
