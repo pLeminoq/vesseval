@@ -2,14 +2,15 @@ import cv2 as cv
 import numpy as np
 import tkinter as tk
 
-from ...state import app_state, PointState
+from ...state import PointState
 
 from ...widgets.canvas import Image
 from ...widgets.canvas import Contour, DisplayContourState
 from ...util import mask_image
 
-from ..preprocessing import PreprocessingView
+from ..preprocessing import PreprocessingView, PreprocessingViewState
 
+from .state import app_state
 from .menu import MenuBar
 from .toolbar import Toolbar
 
@@ -39,7 +40,14 @@ class App(tk.Tk):
         )
 
         self.bind("<Key-q>", lambda event: exit(0))
-        self.bind("<Return>", lambda *args: PreprocessingView())
+        self.bind("<Return>", self.on_return)
+
+    def on_return(self, *args):
+        PreprocessingView(
+            PreprocessingViewState(
+                mask_image(self.state.display_image_state, self.state.contour_state)
+            )
+        )
 
     def on_bb_mode(self, state):
         if state.value:

@@ -5,7 +5,7 @@ import cv2 as cv
 import numpy as np
 
 from ...state import (
-    app_state,
+    HigherState,
     ContourState,
     ResolutionState,
     DisplayImageState,
@@ -13,31 +13,47 @@ from ...state import (
 )
 from ...widgets.canvas import Image
 from ...widgets import Scale, ScaleState
-from ...table_view import ResultView, CellLayerState, ResultViewState
-from ...util import compute_contours, mask_image
+from ...util import compute_contours
+
+from ..app.state import app_state
+
+from ..result.cell_layer import CellLayerState
+from ..result.main import ResultView
+from ..result.state import ResultViewState
 
 from .masking import MaskingView, MaskingState
 
 
-class PreprocessingView(tk.Toplevel):
+class PreprocessingViewState(HigherState):
 
-    def __init__(self):
+    def __init__(self, image: np.ndarray):
         super().__init__()
 
-        image = mask_image(app_state)
+        self.display_image = DisplayImageState(
+            ImageState(image),
+            ResolutionState(512, 400),
+        )
 
-        self.state = DisplayImageState(ImageState(image), ResolutionState(512, 400))
+        self.masking_view_green = MaskingState(self.display_image, channel=1)
+        self.masking_view_red = MaskingState(self.display_image, channel=0)
 
+
+class PreprocessingView(tk.Toplevel):
+
+    def __init__(self, state: PreprocessingViewState):
+        super().__init__()
+
+        self.state = state
         self.canvas = tk.Canvas(self)
-        self.image = Image(self.canvas, self.state)
+        self.image = Image(self.canvas, self.state.display_image)
 
         self.masking_view_green = MaskingView(
             self,
-            state=MaskingState(self.state, channel=1),
+            state=self.state.masking_view_green,
         )
         self.masking_view_red = MaskingView(
             self,
-            state=MaskingState(self.state, channel=0),
+            state=self.state.masking_view_red,
         )
 
         self.canvas.grid(row=0, column=0, rowspan=2)
@@ -57,26 +73,34 @@ class PreprocessingView(tk.Toplevel):
         mask = self.masking_view_green.state.processed_mask.image_state.value
         cnt_inner, cnt_outer = compute_contours(mask, angle_step=angle_step)
         cell_layer_state_1 = CellLayerState(
-            self.state.display_image_state,
-            self.masking_view_green.state.mask.image_state,
+            self.state.display_image.display_image_state,
+            self.state.masking_view_green.mask.image_state,
             ContourState.from_numpy(cnt_inner),
             ContourState.from_numpy(cnt_outer),
-            scale=self.state.scale_state,
-            angle_step=angle_step,
+            scale=self.state.display_image.scale_state,
+            image_config=app_state.image_config,
         )
 
         mask = self.masking_view_red.state.processed_mask.image_state.value
         cnt_inner, cnt_outer = compute_contours(mask, angle_step=angle_step)
         cell_layer_state_2 = CellLayerState(
-            self.state.display_image_state,
-            self.masking_view_red.state.mask.image_state,
+            self.state.display_image.display_image_state,
+            self.state.masking_view_red.mask.image_state,
             ContourState.from_numpy(cnt_inner),
             ContourState.from_numpy(cnt_outer),
-            scale=self.state.scale_state,
-            angle_step=angle_step,
+            scale=self.state.display_image.scale_state,
+            image_config=app_state.image_config,
         )
 
         ResultView(ResultViewState(cell_layer_state_1, cell_layer_state_2))
 
         self.withdraw()
         self.destroy()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+
+    preprocessing_view = PreprocessingView(state=PreprocessingViewState())
+
+    root.mainloop()

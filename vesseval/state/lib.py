@@ -20,6 +20,12 @@ class State(object):
         self._callbacks: List[Callable[[Self], None]] = []
         self._active = True
         self._enter_count = 0
+        self._parent: Optional[State] = None
+
+    def root(self):
+        if self._parent is None:
+            return self
+        return self._parent.root()
 
     def on_change(self, callback: Callable[[Self], None], trigger: bool = False) -> int:
         """
@@ -71,6 +77,7 @@ class State(object):
             self._active = True
             self.notify_change()
 
+
 class ElementObserver:
 
     def __init__(self, list_state: "ListState"):
@@ -80,6 +87,7 @@ class ElementObserver:
     def __call__(self, state: State):
         for cb in self._callbacks:
             cb(self._list_state)
+
 
 class ListState(State):
 
@@ -91,7 +99,12 @@ class ListState(State):
         self._list = []
         self.extend(_list)
 
-    def on_change(self, callback: Callable[[Self], None], trigger: bool = False, element_wise=False) -> int:
+    def on_change(
+        self,
+        callback: Callable[[Self], None],
+        trigger: bool = False,
+        element_wise=False,
+    ) -> int:
         if element_wise:
             self._elem_obs._callbacks.append(callback)
 
@@ -109,7 +122,8 @@ class ListState(State):
 
     def append(self, elem: State):
         self._list.append(elem)
-        
+        elem._parent = self
+
         elem.on_change(self._elem_obs)
 
         self.notify_change()
@@ -130,6 +144,7 @@ class ListState(State):
 
     def insert(self, index: int, elem: State):
         self._list.insert(index, elem)
+        elem._parent = self
 
         elem.on_change(self._elem_obs)
 
@@ -137,6 +152,7 @@ class ListState(State):
 
     def pop(self, index: int = -1) -> State:
         elem = self._list.pop(index)
+        elem._parent = None
 
         elem.remove_callback(self._elem_obs)
 
@@ -146,9 +162,10 @@ class ListState(State):
 
     def remove(self, elem: State):
         self._list.remove(elem)
+        elem._parent = None
 
         elem.remove_callback(self._elem_obs)
-        
+
         self.notify_change()
 
     def reverse(self):
@@ -247,11 +264,17 @@ class BasicState(State):
         self.value = value
 
     def depends_on(
-        self, states: List[State], compute_value: Callable[[None], Any], init=False, element_wise=False,
+        self,
+        states: List[State],
+        compute_value: Callable[[None], Any],
+        init=False,
+        element_wise=False,
     ):
         for state in states:
             if issubclass(type(state), ListState):
-                state.on_change(lambda _: self.set(compute_value()), element_wise=element_wise)
+                state.on_change(
+                    lambda _: self.set(compute_value()), element_wise=element_wise
+                )
                 continue
 
             state.on_change(lambda _: self.set(compute_value()))
@@ -429,6 +452,9 @@ class HigherState(State):
 
         # update the attribute
         super().__setattr__(name, new_value)
+
+        # set self as parent of added state to build a state hierarchy
+        new_value._parent = self
 
         # register notification to the internal state
         new_value.on_change(lambda _: self.notify_change())
