@@ -48,13 +48,22 @@ class FileSelection(tk.Frame):
             self,
             text="Open",
             width=15,
-            command=lambda *args: self.state.filename.set(
-                filedialog.askopenfilename()
-                if self.state.file_type.value == "file"
-                else filedialog.askdirectory()
-            ),
+            command=lambda *args: self.state.filename.set(self.dialog_by_type()),
         )
 
         self.label.grid(column=0, row=0, padx=5)
         self.textfield.grid(column=1, row=0, padx=5)
         self.button.grid(column=2, row=0, padx=(5, 10))
+
+    def dialog_by_type(self):
+        file_type = self.state.file_type.value
+        if file_type == "file":
+            return filedialog.askopenfilename()
+
+        if file_type == "save":
+            return filedialog.asksaveasfilename()
+
+        if file_type == "directory":
+            return filedialog.askdirectory()
+
+        raise TypeError(f"Unknown file type: {file_type}")

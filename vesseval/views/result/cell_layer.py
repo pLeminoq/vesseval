@@ -3,7 +3,7 @@ import numpy as np
 import tkinter as tk
 from tkinter import ttk
 
-from .state import (
+from ...state import (
     HigherState,
     computed_state,
     IntState,
@@ -12,13 +12,12 @@ from .state import (
     ImageState,
     DisplayImageState,
     ResolutionState,
-    app_state,
+    ContourState,
+    ImageConfigState,
 )
-from .widgets.canvas.contour import Contour, ContourState, DisplayContourState
-from .widgets.canvas.image import Image
-from .widgets.label import Label
-from .widgets.table import Table, TableState, RowState
-from .util import compute_thickness
+from ...widgets.canvas import Contour, DisplayContourState, Image
+from ...widgets import Label, Table, TableState, RowState
+from ...util import compute_thickness, compute_contours
 
 
 class CellLayerState(HigherState):
@@ -30,7 +29,7 @@ class CellLayerState(HigherState):
         inner_contour: ContourState,
         outer_contour: ContourState,
         scale: float,
-        angle_step: int,
+        image_config: ImageConfigState,
     ):
         super().__init__()
 
@@ -39,70 +38,52 @@ class CellLayerState(HigherState):
         self.inner_contour = inner_contour
         self.outer_contour = outer_contour
         self.scale = scale
-        self.angle_step = angle_step
-        self.pixel_size = app_state.pixel_size_state
-        self.size_unit = app_state.size_unit_state
+        self.image_config = image_config
 
-        self.inner_length = FloatState(0)
-        self.inner_length.depends_on([self.inner_contour], lambda *args: self.compute_contour_length(self.inner_contour), init=True, element_wise=True)
-        # self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
+        self.inner_length = FloatState(self.compute_contour_length(self.inner_contour))
+        self.inner_length.depends_on(
+            [self.inner_contour],
+            lambda *args: self.compute_contour_length(self.inner_contour),
+            element_wise=True,
+        )
+
         self.outer_length = FloatState(self.compute_contour_length(self.outer_contour))
-        self.thickness = FloatState(self._compute_thickness())
-        # self.thickness = FloatState(0)
-        # self.thickness.depends_on([self.inner_contour, self.outer_contour, *self.inner_contour, *self.outer_contour])
-        for state in [self.scale, self.pixel_size]:
-            # state.on_change(
-                # lambda _: self.inner_length.set(
-                    # self.compute_contour_length(self.inner_contour)
-                # )
-            # )
-            state.on_change(
-                lambda _: self.outer_length.set(
-                    self.compute_contour_length(self.outer_contour)
-                )
-            )
-            state.on_change(lambda _: self.thickness.set(self._compute_thickness()))
+        self.outer_length.depends_on(
+            [self.outer_contour],
+            lambda *args: self.compute_contour_length(self.outer_contour),
+            element_wise=True,
+        )
 
-        self.surround = self.surround(self.inner_contour, self.angle_step)
+        self.thickness = FloatState(self.compute_thickness())
+        self.thickness.depends_on(
+            [self.inner_contour, self.outer_contour],
+            lambda *args: self.compute_thickness(),
+            element_wise=True,
+        )
+
+        self.surround = FloatState(self.compute_surround())
 
         self.contour_mask = ImageState(self.compute_contour_mask())
-        for state in [self.mask, self.inner_contour, self.outer_contour]:
-            state.on_change(
-                lambda state: self.contour_mask.set(self.compute_contour_mask())
-            )
-            state.on_change(lambda _: self.thickness.set(self._compute_thickness()))
-            # state.on_change(
-                # lambda _: self.inner_length.set(
-                    # self.compute_contour_length(self.inner_contour)
-                # )
-            # )
-            state.on_change(
-                lambda _: self.outer_length.set(
-                    self.compute_contour_length(self.outer_contour)
-                )
-            )
+        self.contour_mask.depends_on(
+            [self.mask, self.inner_contour, self.outer_contour],
+            lambda *args: self.compute_contour_mask(),
+            element_wise=True,
+        )
+
         self.contour_area = self.contour_area(
-            self.contour_mask, self.scale, self.pixel_size
+            self.contour_mask, self.scale, self.image_config.pixel_size
         )
         self.cell_area = self.cell_area(
-            self.mask, self.contour_mask, self.scale, self.pixel_size
+            self.mask, self.contour_mask, self.scale, self.image_config.pixel_size
         )
 
-        for pt in [*self.inner_contour, *self.outer_contour]:
-            # pt.on_change(
-                # lambda _: self.inner_length.set(
-                    # self.compute_contour_length(self.inner_contour)
-                # )
-            # )
-            pt.on_change(
-                lambda _: self.outer_length.set(
-                    self.compute_contour_length(self.outer_contour)
-                )
-            )
-            pt.on_change(lambda _: self.thickness.set(self._compute_thickness()))
-            pt.on_change(lambda _: self.contour_mask.set(self.compute_contour_mask()))
-
         self.colored_mask = self.colored_mask(self.image, self.mask)
+
+    def compute_surround(self):
+        n_angles = 100
+        _angle_step = 360.0 / n_angles
+        cnt_inner, _ = compute_contours(self.mask.value, angle_step=_angle_step)
+        return len(cnt_inner) / n_angles
 
     def compute_contour_mask(self) -> np.ndarray:
         contour_mask = np.zeros(self.mask.value.shape, np.uint8)
@@ -116,15 +97,15 @@ class CellLayerState(HigherState):
 
     def compute_contour_length(self, contour: ContourState):
         length = cv.arcLength(contour.to_numpy(), closed=True)
-        length = length * self.scale.value * self.pixel_size.value
+        length = length * self.scale.value * self.image_config.pixel_size.value
         return length
 
-    def _compute_thickness(self):
+    def compute_thickness(self):
         contour_inner = self.inner_contour.to_numpy()
         contour_outer = self.outer_contour.to_numpy()
 
         thickness = compute_thickness(contour_inner, contour_outer)
-        return (thickness * self.pixel_size.value) / self.scale.value
+        return float((thickness * self.image_config.pixel_size.value) / self.scale.value)
 
     @computed_state
     def colored_mask(self, image: ImageState, mask: ImageState):
@@ -133,19 +114,6 @@ class CellLayerState(HigherState):
         colored_mask = image.value * mask + image.value * 0.4 * mask_inv
         colored_mask = colored_mask.astype(np.uint8)
         return ImageState(colored_mask)
-
-    @computed_state
-    def contour_length(
-        self, contour: ContourState, scale: FloatState, pixel_size: FloatState
-    ) -> FloatState:
-        # TODO: this actually depends on the positions of each point
-        length = cv.arcLength(contour.to_numpy(), closed=True)
-        length = length * scale.value * pixel_size.value
-        return FloatState(length)
-
-    @computed_state
-    def surround(self, contour: ContourState, angle_step: IntState) -> FloatState:
-        return FloatState(len(contour) * angle_step.value / 360.0)
 
     @computed_state
     def contour_area(
@@ -199,7 +167,7 @@ class CellLayerView(tk.Frame):
                         key="Inner Length",
                         value=state.inner_length.transform(
                             lambda state: StringState(
-                                f"{state.value:.2f} {self.state.size_unit.value}"
+                                f"{state.value:.2f} {self.state.image_config.size_unit.value}"
                             )
                         ),
                     ),
@@ -207,7 +175,7 @@ class CellLayerView(tk.Frame):
                         key="Outer Length",
                         value=state.outer_length.transform(
                             lambda state: StringState(
-                                f"{state.value:.2f} {self.state.size_unit.value}"
+                                f"{state.value:.2f} {self.state.image_config.size_unit.value}"
                             )
                         ),
                     ),
@@ -215,7 +183,7 @@ class CellLayerView(tk.Frame):
                         key="Contour Area",
                         value=state.contour_area.transform(
                             lambda state: StringState(
-                                f"{state.value:.2f} {self.state.size_unit.value}²"
+                                f"{state.value:.2f} {self.state.image_config.size_unit.value}²"
                             )
                         ),
                     ),
@@ -223,7 +191,7 @@ class CellLayerView(tk.Frame):
                         key="Cell Area",
                         value=state.cell_area.transform(
                             lambda state: StringState(
-                                f"{state.value:.2f} {self.state.size_unit.value}²"
+                                f"{state.value:.2f} {self.state.image_config.size_unit.value}²"
                             )
                         ),
                     ),
@@ -237,7 +205,7 @@ class CellLayerView(tk.Frame):
                         key="Thickness",
                         value=state.thickness.transform(
                             lambda state: StringState(
-                                f"{state.value:.2f} {self.state.size_unit.value}"
+                                f"{state.value:.2f} {self.state.image_config.size_unit.value}"
                             )
                         ),
                     ),
@@ -247,35 +215,3 @@ class CellLayerView(tk.Frame):
 
         self.canvas.grid(column=0, row=0, padx=(5, 5), pady=(5, 5))
         self.table.grid(column=0, row=1, pady=(5, 5))
-
-class ResultView(tk.Toplevel):
-
-    def __init__(self, cell_layer_states):
-        super().__init__()
-
-        self.cell_layer_states = cell_layer_states
-
-        self.cell_layer_view_1 = CellLayerView(self, cell_layer_states[0])
-        self.cell_layer_view_2 = CellLayerView(self, cell_layer_states[1])
-        self.button = ttk.Button(self, text="Copy", command=self.on_copy)
-
-        self.cell_layer_view_1.grid(row=0, column=0, padx=5)
-        self.cell_layer_view_2.grid(row=0, column=1, padx=5)
-        self.button.grid(row=1, column=0, columnspan=2, pady=5)
-
-        self.bind("<Key-q>", lambda event: self.destroy())
-
-    def on_copy(self, *args):
-        values = []
-        for state in self.cell_layer_states:
-            values.append(state.inner_length.value)
-            values.append(state.outer_length.value)
-            values.append(state.contour_area.value)
-            values.append(state.cell_area.value)
-            values.append(state.surround.value)
-            values.append(state.thickness.value)
-        values = list(map(str, values))
-
-        self.clipboard_clear()
-        self.clipboard_append("\t".join(values))
-

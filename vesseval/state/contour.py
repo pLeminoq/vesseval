@@ -13,6 +13,7 @@ class ContourState(ListState):
 
     @classmethod
     def from_numpy(cls, contour: np.ndarray):
+        contour = contour.astype(int).tolist()
         return cls([PointState(*pt) for pt in contour])
 
     def to_numpy(self):

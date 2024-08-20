@@ -3,7 +3,7 @@ from typing import Tuple
 import cv2 as cv
 import numpy as np
 
-from .state import AppState, DisplayImageState
+from .state import ContourState, DisplayImageState
 
 
 def compute_contours(mask: np.ndarray, angle_step: int = 10):
@@ -11,7 +11,7 @@ def compute_contours(mask: np.ndarray, angle_step: int = 10):
     cnt_outer = []
 
     center = np.array(mask.shape[::-1]) / 2
-    for angle_deg in range(0, 360, angle_step):
+    for angle_deg in np.arange(0, 360, angle_step):
         angle = np.deg2rad(angle_deg)
         direction = np.array([np.cos(angle), np.sin(angle)]) * max(mask.shape)
 
@@ -74,13 +74,11 @@ def compute_area(
 
 
 def mask_image(
-    app_state: AppState,
+    display_image: DisplayImageState,
+    contour: ContourState,
 ):
-    image = app_state.display_image_state.image_state.value
-    contour = app_state.contour_state.to_numpy()
-    display_image_state = app_state.display_image_state
-
-    contour = transform_contour(contour, display_image_state)
+    image = display_image.image_state.value
+    contour = transform_contour(contour.to_numpy(), display_image)
 
     mask = np.zeros(image.shape[:2], np.uint8)
     mask = cv.drawContours(mask, [contour], 0, 255, -1)

@@ -14,7 +14,9 @@ from .widgets import FileSelection, FileSelectionState
 
 class AbstractOpenDialog(tk.Toplevel):
 
-    def __init__(self, filename_state: StringState, label: str = "Image", file_type: str = "file"):
+    def __init__(
+        self, filename_state: StringState, label: str = "Image", file_type: str = "file"
+    ):
         super().__init__()
 
         self.filename_state = filename_state
@@ -32,7 +34,7 @@ class AbstractOpenDialog(tk.Toplevel):
         self.button = ttk.Button(self, text="Confirm", command=self.on_confirm)
         self.enable_button()
 
-        self.file_selection.state.filename.on_change(self.on_confirm)
+        self.file_selection.state.filename.on_change(self.enable_button)
 
         self.file_selection.grid(column=0, row=0, pady=5)
         self.button.grid(column=0, row=1, pady=5)
@@ -74,6 +76,22 @@ class OpenFileDialog(AbstractOpenDialog):
         Validate if the selection is valid (files exist).
         """
         return os.path.isfile(self.file_selection.state.filename.value)
+
+
+class SaveAsFileDialog(AbstractOpenDialog):
+
+    def __init__(self, filename_state: StringState, label: str = "Save as"):
+        super().__init__(filename_state, label, file_type="save")
+
+    def selection_is_valid(self):
+        filename = self.file_selection.state.filename.value
+        if filename == "":
+            return False
+
+        if not os.path.exists(filename):
+            return True
+
+        return os.path.splitext(filename)[1] == ".zip"
 
 
 class OpenDirectoryDialog(AbstractOpenDialog):

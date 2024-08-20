@@ -48,17 +48,20 @@ class MaskingState(HigherState):
             image_state=self.threshold_image(
                 self.display_image_state.display_image_state, self.threshold_state
             ),
+            resolution_state=self.display_image_state.resolution_state,
         )
         self.processed_mask = DisplayImageState(
             image_state=self.process_mask(
                 self.mask.display_image_state, self.morph_ops
             ),
+            resolution_state=self.display_image_state.resolution_state,
         )
         self.colored_mask = DisplayImageState(
             image_state=self.color_mask(
                 self.processed_mask.display_image_state,
                 self.display_image_state.display_image_state,
             ),
+            resolution_state=self.display_image_state.resolution_state,
         )
 
     @computed_state

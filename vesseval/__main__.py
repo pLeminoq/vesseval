@@ -1,7 +1,7 @@
 import argparse
 
-from .state import app_state
 from .views.app import App
+from .views.app.state import app_state
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--image", type=str, default="")

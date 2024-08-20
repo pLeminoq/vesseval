@@ -4,9 +4,12 @@ import os
 import cv2 as cv
 import numpy as np
 
-from .contour import ContourState
-from .image import DisplayImageState, ImageState, ResolutionState
-from .lib import (
+from ...state import (
+    ContourState,
+    DisplayImageState,
+    ImageState,
+    ImageConfigState,
+    ResolutionState,
     computed_state,
     FloatState,
     HigherState,
@@ -16,7 +19,6 @@ from .lib import (
 
 placeholder_image = np.zeros((512, 512, 3), np.uint8)
 
-
 class AppState(HigherState):
 
     def __init__(self):
@@ -25,8 +27,7 @@ class AppState(HigherState):
         self.filename_state = StringState("")
         self.save_directory = StringState("")
 
-        self.pixel_size_state = FloatState(0.74588)
-        self.size_unit_state = StringState("μm")
+        self.image_config = ImageConfigState()
         self.contour_state = ContourState()
 
         self.display_resolution_state = ResolutionState(1600, 900)

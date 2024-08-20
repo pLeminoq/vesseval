@@ -10,7 +10,17 @@ from .lib import (
     IntState,
     ObjectState,
     SequenceState,
+    StringState,
 )
+
+
+class ImageConfigState(HigherState):
+
+    def __init__(self):
+        super().__init__()
+
+        self.pixel_size = FloatState(0.74588)
+        self.size_unit = StringState("μm")
 
 
 class ImageState(ObjectState):
@@ -31,7 +41,10 @@ class ResolutionState(SequenceState):
 class DisplayImageState(HigherState):
 
     def __init__(
-        self, image_state: ImageState, resolution_state: ResolutionState = None, interpolation=cv.INTER_NEAREST,
+        self,
+        image_state: ImageState,
+        resolution_state: ResolutionState = None,
+        interpolation=cv.INTER_NEAREST,
     ):
         super().__init__()
 
@@ -67,7 +80,15 @@ class DisplayImageState(HigherState):
         self, image_state: ImageState, scale_state: FloatState
     ) -> ImageState:
         scale = scale_state.value
-        return ImageState(cv.resize(image_state.value, None, fx=scale, fy=scale, interpolation=self._interpolation))
+        return ImageState(
+            cv.resize(
+                image_state.value,
+                None,
+                fx=scale,
+                fy=scale,
+                interpolation=self._interpolation,
+            )
+        )
 
     def copy(self):
         return DisplayImageState(

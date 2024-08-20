@@ -7,9 +7,11 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 
-from ...state import app_state, StringState
-from ..preprocessing import PreprocessingView
+from ...state import StringState
+from ...util import mask_image
+from ..preprocessing import PreprocessingView, PreprocessingViewState
 from ..dialog.open import OpenFileDialog, OpenDirectoryDialog
+from .state import app_state
 
 
 class MenuFile(tk.Menu):
@@ -65,7 +67,15 @@ class MenuTools(tk.Menu):
         menu_bar.add_cascade(menu=self, label="Tools")
 
         self.add_command(
-            label="Process Contour", command=lambda *args: PreprocessingView()
+            label="Process Contour",
+            command=lambda *args: PreprocessingView(
+                PreprocessingViewState(
+                    mask_image(
+                        app_state.state.display_image_state,
+                        app_state.state.contour_state,
+                    )
+                )
+            ),
         )
         app_state.contour_state.on_change(self.on_contour, trigger=True)
 
