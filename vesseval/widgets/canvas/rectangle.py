@@ -13,12 +13,16 @@ class RectangleState(HigherState):
         center_state: PointState,
         size_state: IntState = 9,
         color_state: StringState = "green",
+        outline: StringState = "black",
+        outline_width: IntState = 1,
     ):
         super().__init__()
 
         self.center_state = center_state
         self.size_state = size_state
         self.color_state = color_state
+        self.outline = outline
+        self.outline_width = outline_width
 
     def ltbr(self):
         size_state_h = self.size_state.value // 2
@@ -43,4 +47,9 @@ class Rectangle(CanvasItem):
 
     def redraw(self, state):
         self.canvas.coords(self.id, *state.ltbr())
-        self.canvas.itemconfig(self.id, fill=state.color_state.value)
+        self.canvas.itemconfig(
+            self.id,
+            fill=state.color_state.value,
+            outline=state.outline.value,
+            width=state.outline_width.value,
+        )
