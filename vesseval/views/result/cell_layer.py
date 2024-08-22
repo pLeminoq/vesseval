@@ -54,6 +54,13 @@ class CellLayerState(HigherState):
             element_wise=True,
         )
 
+        self.diameter = FloatState(self.compute_diameter())
+        self.diameter.depends_on(
+            [self.outer_contour],
+            lambda *args: self.compute_diameter(),
+            element_wise=True,
+        )
+
         self.thickness = FloatState(self.compute_thickness())
         self.thickness.depends_on(
             [self.inner_contour, self.outer_contour],
@@ -108,6 +115,13 @@ class CellLayerState(HigherState):
         return float(
             (thickness * self.image_config.pixel_size.value) / self.scale.value
         )
+
+    def compute_diameter(self):
+        contour_outer = self.outer_contour.to_numpy()
+        _, radius = cv.minEnclosingCircle(contour_outer)
+        diameter = radius * 2
+        diameter = diameter * self.image_config.pixel_size.value / self.scale.value
+        return diameter
 
     @computed_state
     def colored_mask(self, image: ImageState, mask: ImageState):
@@ -176,6 +190,14 @@ class CellLayerView(tk.Frame):
                     RowState(
                         key="Outer Length",
                         value=state.outer_length.transform(
+                            lambda state: StringState(
+                                f"{state.value:.2f} {self.state.image_config.size_unit.value}"
+                            )
+                        ),
+                    ),
+                    RowState(
+                        key="Diameter",
+                        value=state.diameter.transform(
                             lambda state: StringState(
                                 f"{state.value:.2f} {self.state.image_config.size_unit.value}"
                             )
