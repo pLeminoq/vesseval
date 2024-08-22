@@ -10,6 +10,7 @@ from ...util import mask_image
 
 from ..preprocessing import PreprocessingView, PreprocessingViewState
 
+from .footer import Footer, FooterState
 from .state import app_state
 from .menu import MenuBar
 from .toolbar import Toolbar
@@ -22,6 +23,11 @@ class App(tk.Tk):
 
         self.state = app_state
 
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=2)
+        self.rowconfigure(1, weight=10)
+        self.rowconfigure(2, weight=1)
+
         self.menu_bar = MenuBar(self)
 
         self.toolbar = Toolbar(self)
@@ -29,6 +35,10 @@ class App(tk.Tk):
 
         self.canvas = tk.Canvas(self)
         self.canvas.grid(column=0, row=1)
+
+        self.footer = Footer(self, state=FooterState())
+        self.footer.grid(column=0, row=2, sticky="nswe")
+        self.state.contour_state.on_change(self.update_info, element_wise=True)
 
         self.bb_mode_bindings = {}
         self.toolbar.state.bounding_box_mode.on_change(self.on_bb_mode, trigger=True)
@@ -41,6 +51,24 @@ class App(tk.Tk):
 
         self.bind("<Key-q>", lambda event: exit(0))
         self.bind("<Return>", self.on_return)
+
+    def update_info(self, *args):
+        contour = self.state.contour_state.to_numpy()
+        if len(contour) <= 1:
+            self.footer.state.info_text.value = ""
+            return
+
+        _, radius = cv.minEnclosingCircle(contour)
+        diameter = radius * 2
+        diameter = (
+            diameter
+            * self.state.image_config.pixel_size.value
+            / self.state.display_image_state.scale_state.value
+        )
+
+        self.footer.state.info_text.value = (
+            f"Size of Vessel: {diameter:.1f}{self.state.image_config.size_unit.value}"
+        )
 
     def on_return(self, *args):
         PreprocessingView(

@@ -97,7 +97,7 @@ class CellLayerState(HigherState):
 
     def compute_contour_length(self, contour: ContourState):
         length = cv.arcLength(contour.to_numpy(), closed=True)
-        length = length * self.scale.value * self.image_config.pixel_size.value
+        length = length * self.image_config.pixel_size.value / self.scale.value
         return length
 
     def compute_thickness(self):
@@ -105,7 +105,9 @@ class CellLayerState(HigherState):
         contour_outer = self.outer_contour.to_numpy()
 
         thickness = compute_thickness(contour_inner, contour_outer)
-        return float((thickness * self.image_config.pixel_size.value) / self.scale.value)
+        return float(
+            (thickness * self.image_config.pixel_size.value) / self.scale.value
+        )
 
     @computed_state
     def colored_mask(self, image: ImageState, mask: ImageState):
@@ -120,7 +122,7 @@ class CellLayerState(HigherState):
         self, contour_mask: ImageState, scale: FloatState, pixel_size: FloatState
     ) -> FloatState:
         n_pixels = contour_mask.value.sum() // 255
-        area = n_pixels / (scale.value**2) * (pixel_size.value**2)
+        area = n_pixels * (pixel_size.value**2) / (scale.value**2)
         return FloatState(area)
 
     @computed_state
@@ -133,7 +135,7 @@ class CellLayerState(HigherState):
     ) -> FloatState:
         _mask = cv.bitwise_and(contour_mask.value, contour_mask.value, mask=mask.value)
         n_pixels = _mask.sum() // 255
-        area = n_pixels / (scale.value**2) * (pixel_size.value**2)
+        area = n_pixels * (pixel_size.value**2) / (scale.value**2)
         return FloatState(area)
 
 
