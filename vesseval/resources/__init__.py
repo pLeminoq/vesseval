@@ -30,4 +30,5 @@ class Icon:
 icons = {
     "arrow": Icon(os.path.join(_dir, "icons", "arrow_selector.png")),
     "rectangle": Icon(os.path.join(_dir, "icons", "rectangle.png")),
+    "eraser": Icon(os.path.join(_dir, "icons", "eraser.png")),
 }
