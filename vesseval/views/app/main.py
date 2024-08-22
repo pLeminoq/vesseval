@@ -84,7 +84,10 @@ class App(tk.Tk):
             self.erase_mode["rectangle"] = Rectangle(
                 self.canvas,
                 RectangleState(
-                    PointState(-20, -20), size_state=15, color_state="white"
+                    PointState(-20, -20),
+                    size_state=15,
+                    color_state="",
+                    outline="white",
                 ),
             )
             self.erase_mode["bindings"] = {
