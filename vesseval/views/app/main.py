@@ -4,7 +4,7 @@ import tkinter as tk
 
 from ...state import PointState
 
-from ...widgets.canvas import Image
+from ...widgets.canvas import Image, Rectangle, RectangleState
 from ...widgets.canvas import Contour, DisplayContourState
 from ...util import mask_image
 
@@ -41,7 +41,9 @@ class App(tk.Tk):
         self.state.contour_state.on_change(self.update_info, element_wise=True)
 
         self.bb_mode_bindings = {}
+        self.erase_mode = {}
         self.toolbar.state.bounding_box_mode.on_change(self.on_bb_mode, trigger=True)
+        self.toolbar.state.erase_mode.on_change(self.on_erase_mode, trigger=True)
 
         self.image = Image(self.canvas, app_state.display_image_state)
         self.contour = Contour(
@@ -75,6 +77,61 @@ class App(tk.Tk):
             PreprocessingViewState(
                 mask_image(self.state.display_image_state, self.state.contour_state)
             )
+        )
+
+    def on_erase_mode(self, state):
+        if state.value:
+            self.erase_mode["rectangle"] = Rectangle(
+                self.canvas,
+                RectangleState(
+                    PointState(-20, -20), size_state=15, color_state="white"
+                ),
+            )
+            self.erase_mode["bindings"] = {
+                "motion": self.canvas.bind("<Motion>", self.on_erase_motion),
+                "button_1": self.canvas.bind("<Button-1>", self.on_erase_click),
+                "b1_motion": self.canvas.bind("<B1-Motion>", self.on_erase_click),
+            }
+        else:
+            if "rectangle" in self.erase_mode:
+                self.erase_mode["rectangle"].delete()
+                del self.erase_mode["rectangle"]
+
+                for binding, _id in self.erase_mode["bindings"].items():
+                    self.canvas.unbind(binding, _id)
+
+    def on_erase_motion(self, event):
+        self.erase_mode["rectangle"].state.center_state.set(event.x, event.y)
+
+    def on_erase_click(self, event):
+        self.on_erase_motion(event)
+
+        display_image_state = self.state.display_image_state
+        image_state = display_image_state.image_state
+
+        resolution_state = display_image_state.resolution_state
+        display_shape = display_image_state.display_image_state.value.shape
+
+        t_x = (resolution_state.width.value - display_shape[1]) // 2
+        t_y = (resolution_state.height.value - display_shape[0]) // 2
+
+        # transform mouse position into image coordinates
+        pt = np.array([event.x, event.y])
+        pt[0] = pt[0] - t_x
+        pt[1] = pt[1] - t_y
+        pt = np.rint(pt / display_image_state.scale_state.value).astype(int)
+        pt = tuple(pt.tolist())
+
+        # transform size into image size
+        size = self.erase_mode["rectangle"].state.size_state.value
+        size = round(size / display_image_state.scale_state.value)
+
+        # translate pt rectangle top-left
+        size_h = size // 2
+        pt = (pt[0] - size_h, pt[1] - size_h)
+
+        image_state.value = cv.rectangle(
+            image_state.value, pt, (pt[0] + size, pt[1] + size), (0, 0, 0), -1
         )
 
     def on_bb_mode(self, state):
