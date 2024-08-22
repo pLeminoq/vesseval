@@ -68,6 +68,7 @@ class ResultView(tk.Toplevel):
         for state in [self.state.cell_layer_state_1, self.state.cell_layer_state_2]:
             values.append(state.inner_length.value)
             values.append(state.outer_length.value)
+            values.append(state.diameter.value)
             values.append(state.contour_area.value)
             values.append(state.cell_area.value)
             values.append(state.surround.value)
