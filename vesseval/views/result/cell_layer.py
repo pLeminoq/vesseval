@@ -157,10 +157,12 @@ class CellLayerView(tk.Frame):
 
     def __init__(self, parent: tk.Widget, state: CellLayerState):
         super().__init__(parent)
+        self.configure(bg="#757575")
 
         self.state = state
 
         self.canvas = tk.Canvas(self)
+        self.canvas.configure(bg="#757575", highlightthickness=0)
         self.image = Image(self.canvas, DisplayImageState(self.state.colored_mask))
         self.contour_inner = Contour(
             self.canvas,

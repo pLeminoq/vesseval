@@ -32,10 +32,10 @@ class Table(tk.Frame):
         val_width = max(map(lambda row: len(row.value.value), self.state)) + 2
 
         self.key_labels = [
-            Label(self, row.key, width=key_width, anchor=tk.W, bg="white", borderwidth=1, relief="groove") for row in self.state
+            Label(self, row.key, width=key_width, anchor=tk.W, bg="#9e9e9e", borderwidth=1, relief="groove") for row in self.state
         ]
         self.value_labels = [
-            Label(self, row.value, width=val_width, bg="white", borderwidth=1, relief="groove") for row in self.state
+            Label(self, row.value, width=val_width, bg="#9e9e9e", borderwidth=1, relief="groove") for row in self.state
         ]
 
         for i, (k_label, v_label) in enumerate(zip(self.key_labels, self.value_labels)):

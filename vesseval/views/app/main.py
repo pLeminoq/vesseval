@@ -20,6 +20,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.configure(bg="#757575")
 
         self.state = app_state
 
@@ -33,7 +34,8 @@ class App(tk.Tk):
         self.toolbar = Toolbar(self)
         self.toolbar.grid(column=0, row=0, sticky=tk.W + tk.E)
 
-        self.canvas = tk.Canvas(self)
+        self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.canvas.configure(bg="#757575")
         self.canvas.grid(column=0, row=1)
 
         self.footer = Footer(self, state=FooterState())

@@ -47,11 +47,11 @@ class ScaleState(HigherState):
 
 class Scale(tk.Frame):
 
-    def __init__(self, parent: tk.Frame, state: ScaleState):
+    def __init__(self, parent: tk.Frame, state: ScaleState, **kwargs):
         """
         Scale widget with which user can select numerical values inside a value range.
         """
-        super().__init__(parent)
+        super().__init__(parent, **kwargs)
 
         self.state = state
 
@@ -74,10 +74,10 @@ class Scale(tk.Frame):
         # compute the maximum amount of characters to be expected for a label to set its width
         _width = max(map(lambda v: len(self.state._formatter(v)), self.state._value_range))
         self.label_min = tk.Label(
-            self, text=self.state._formatter(self.state._value_range[0]), width=_width,
+            self, text=self.state._formatter(self.state._value_range[0]), width=_width, bg="#757575",
         )
         self.label_max = tk.Label(
-            self, text=self.state._formatter(self.state._value_range[1]), width=_width,
+            self, text=self.state._formatter(self.state._value_range[1]), width=_width, bg="#757575",
         )
         # self.label_current = tk.Label(
             # self, text=self.state._formatter(self.state.number_state.value), width=_width,

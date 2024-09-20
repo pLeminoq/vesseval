@@ -98,13 +98,17 @@ class MaskingView(tk.Frame):
 
     def __init__(self, parent: tk.Frame, state: MaskingState):
         super().__init__(parent)
+        self.configure(bg="#757575", highlightthickness=0)
         self.state = state
 
         self.canvas = tk.Canvas(self)
+        self.canvas.configure(bg="#757575", highlightthickness=0)
         self.image = Image(self.canvas, self.state.colored_mask)
 
         self.frame = tk.Frame(self)
-        self.title_1 = tk.Label(self.frame, text="Threshold", width=10)
+        self.frame.configure(bg="#757575")
+        self.frame.configure(bg="#757575", highlightthickness=0)
+        self.title_1 = tk.Label(self.frame, text="Threshold", width=10, bg="#757575")
         self.scale_1 = Scale(
             self.frame,
             ScaleState(
@@ -115,10 +119,12 @@ class MaskingView(tk.Frame):
                 ),
                 orientation=tk.VERTICAL,
             ),
+            bg="#757575",
         )
-        self.title_2 = tk.Label(self.frame, text="Opening", width=10)
+        self.title_2 = tk.Label(self.frame, text="Opening", width=10, bg="#757575")
         self.chechbox_2 = Checkbox(
-            self.frame, CheckboxState(self.state.morph_ops.opening)
+            self.frame, CheckboxState(self.state.morph_ops.opening),
+            bg="#757575",
         )
         self.scale_2 = Scale(
             self.frame,
@@ -130,10 +136,11 @@ class MaskingView(tk.Frame):
                 ),
                 orientation=tk.VERTICAL,
             ),
+            bg="#757575",
         )
-        self.title_3 = tk.Label(self.frame, text="Closing", width=10)
+        self.title_3 = tk.Label(self.frame, text="Closing", width=10, bg="#757575") 
         self.chechbox_3 = Checkbox(
-            self.frame, CheckboxState(self.state.morph_ops.closing)
+            self.frame, CheckboxState(self.state.morph_ops.closing), bg="#757575",
         )
         self.scale_3 = Scale(
             self.frame,
@@ -145,6 +152,7 @@ class MaskingView(tk.Frame):
                 ),
                 orientation=tk.VERTICAL,
             ),
+            bg="#757575",
         )
 
         self.tool_tip_opening = ToolTip(

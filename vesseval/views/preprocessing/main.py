@@ -42,9 +42,11 @@ class PreprocessingView(tk.Toplevel):
 
     def __init__(self, state: PreprocessingViewState):
         super().__init__()
+        self.configure(bg="#757575")
 
         self.state = state
-        self.canvas = tk.Canvas(self)
+        self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.canvas.configure(bg="#757575")
         self.image = Image(self.canvas, self.state.display_image)
 
         self.masking_view_green = MaskingView(

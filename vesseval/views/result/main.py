@@ -48,6 +48,7 @@ class ResultView(tk.Toplevel):
 
     def __init__(self, state: ResultViewState):
         super().__init__()
+        self.configure(bg="#757575")
 
         self.state = state
 
