@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from ..state import StringState
+from widget_state import StringState
 
 
 class Label(tk.Label):

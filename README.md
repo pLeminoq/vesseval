@@ -1,5 +1,5 @@
 # Vesseval
-Vess(el) eval(uation) is a small GUI application to evalute the muscularization of pulmonary vessels.
+Vess(el) eval(uation) is a small GUI application to evaluate the muscularization of pulmonary vessels.
 
 ## Installation
 * `pip install -r requirement.txt`

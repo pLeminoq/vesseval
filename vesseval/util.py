@@ -121,3 +121,4 @@ def compute_thickness(contour_inner: np.ndarray, contour_outer: np.ndarray) -> f
     )
     # estimate thickness as the absolute average distance
     return np.average(np.absolute(distances))
+

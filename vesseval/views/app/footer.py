@@ -1,10 +1,10 @@
 import tkinter as tk
+from widget_state import StringState, HigherOrderState
 
-from ...state import StringState, HigherState
 from ...widgets.label import Label
 
 
-class FooterState(HigherState):
+class FooterState(HigherOrderState):
 
     def __init__(self):
         super().__init__()

@@ -2,13 +2,9 @@ import cv2 as cv
 import numpy as np
 import tkinter as tk
 from tkinter import ttk
+from widget_state import HigherOrderState, computed_state, IntState, FloatState, StringState
 
 from ...state import (
-    HigherState,
-    computed_state,
-    IntState,
-    FloatState,
-    StringState,
     ImageState,
     DisplayImageState,
     ResolutionState,
@@ -20,7 +16,7 @@ from ...widgets import Label, Table, TableState, RowState
 from ...util import compute_thickness, compute_contours
 
 
-class CellLayerState(HigherState):
+class CellLayerState(HigherOrderState):
 
     def __init__(
         self,

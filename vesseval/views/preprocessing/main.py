@@ -3,9 +3,9 @@ from tkinter import ttk
 
 import cv2 as cv
 import numpy as np
+from widget_state import HigherOrderState
 
 from ...state import (
-    HigherState,
     ContourState,
     ResolutionState,
     DisplayImageState,
@@ -24,7 +24,7 @@ from ..result.state import ResultViewState
 from .masking import MaskingView, MaskingState
 
 
-class PreprocessingViewState(HigherState):
+class PreprocessingViewState(HigherOrderState):
 
     def __init__(self, image: np.ndarray):
         super().__init__()

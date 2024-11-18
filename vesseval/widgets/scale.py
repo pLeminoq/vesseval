@@ -4,13 +4,13 @@ import tkinter as tk
 from tkinter import ttk
 from tktooltip import ToolTip
 
-from ..state import IntState, FloatState, HigherState
+from widget_state import IntState, FloatState, HigherOrderState
 
 Number = Union[int, float]
 NumberState = Union[IntState, FloatState]
 
 
-class ScaleState(HigherState):
+class ScaleState(HigherOrderState):
 
     def __init__(
         self,

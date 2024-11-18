@@ -1,12 +1,12 @@
 from typing import List
 
 import tkinter as tk
+from widget_state import HigherOrderState, ListState, StringState
 
-from ..state import HigherState, ListState, StringState
 from .label import Label
 
 
-class RowState(HigherState):
+class RowState(HigherOrderState):
 
     def __init__(self, key: StringState, value: StringState):
         super().__init__()

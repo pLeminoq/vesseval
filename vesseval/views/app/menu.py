@@ -6,8 +6,8 @@ import os
 
 import tkinter as tk
 from tkinter import filedialog
+from widget_state import StringState
 
-from ...state import StringState
 from ...util import mask_image
 from ..preprocessing import PreprocessingView, PreprocessingViewState
 from ..dialog.open import OpenFileDialog, OpenDirectoryDialog

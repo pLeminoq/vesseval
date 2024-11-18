@@ -1,12 +1,13 @@
 from typing import Optional
 
 import tkinter as tk
+from widget_state import HigherOrderState, StringState
 
-from ...state import PointState, HigherState, StringState
+from ...state import PointState
 from .lib import CanvasItem
 
 
-class LineState(HigherState):
+class LineState(HigherOrderState):
 
     def __init__(
         self, start_state: PointState, end_state: PointState, color_state: StringState

@@ -2,8 +2,7 @@ from typing import Callable
 from typing_extensions import Self
 
 import tkinter as tk
-
-from ...state import State
+from widget_state import State
 
 
 class CanvasItem:

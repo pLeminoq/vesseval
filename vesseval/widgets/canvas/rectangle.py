@@ -1,12 +1,13 @@
 from typing import Callable, Optional
 
 import tkinter as tk
+from widget_state import HigherOrderState, IntState, StringState
 
-from ...state import PointState, HigherState, IntState, StringState
+from ...state import PointState
 from .lib import CanvasItem
 
 
-class RectangleState(HigherState):
+class RectangleState(HigherOrderState):
 
     def __init__(
         self,
