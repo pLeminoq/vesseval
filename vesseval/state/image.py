@@ -97,3 +97,26 @@ class DisplayImageState(HigherOrderState):
             ImageState(self.image_state.value),
             ResolutionState(*self.resolution_state.values()),
         )
+
+    def to_image_coords(self, x, y):
+        shape = self.display_image_state.value.shape
+
+        t_x = (self.resolution_state.width.value - shape[1]) // 2
+        t_y = (self.resolution_state.height.value - shape[0]) // 2
+
+        x = round((x - t_x) / self.scale_state.value)
+        y = round((y - t_y) / self.scale_state.value)
+        return x, y
+
+    def to_display(self, x, y):
+        shape = self.display_image_state.value.shape
+        scale = self.scale_state.value
+
+        t_x = (self.resolution_state.width.value - shape[1]) // 2
+        t_y = (self.resolution_state.height.value - shape[0]) // 2
+
+        x = round(x * scale + t_x)
+        y = round(y * scale + t_y)
+        return x, y
+
+
