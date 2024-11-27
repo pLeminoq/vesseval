@@ -71,8 +71,8 @@ class MenuTools(tk.Menu):
             command=lambda *args: PreprocessingView(
                 PreprocessingViewState(
                     mask_image(
-                        app_state.state.display_image_state,
-                        app_state.state.contour_state,
+                        app_state.display_image_state,
+                        app_state.contour_state,
                     )
                 )
             ),
