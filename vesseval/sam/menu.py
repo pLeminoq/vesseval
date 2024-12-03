@@ -1,0 +1,71 @@
+"""
+Components of the menu bar.
+"""
+
+import os
+
+import tkinter as tk
+from tkinter import filedialog
+from widget_state import StringState
+
+from ..views.dialog.open import OpenFileDialog, OpenDirectoryDialog
+from .state import app_state
+
+
+class MenuFile(tk.Menu):
+    """
+    The File menu containing options to
+      * open an image
+    """
+
+    def __init__(self, menu_bar):
+        super().__init__(menu_bar)
+
+        menu_bar.add_cascade(menu=self, label="File")
+
+        # add commands
+        self.add_command(label="Open", command=self.open)
+        # self.add_separator()
+        # self.add_command(label="Save", command=self.save)
+        # self.add_command(label="Save As", command=self.save_as)
+        # self.add_separator()
+        # self.add_command(label="Load", command=self.load)
+
+        # app_state.save_directory.on_change(
+        #     lambda save_directory: self.entryconfigure(
+        #         2, state=tk.DISABLED if save_directory.value == "" else tk.ACTIVE
+        #     ),
+        #     trigger=True,
+        # )
+
+    def open(self):
+        """
+        Open a new image with a user dialog.
+        """
+        OpenFileDialog(app_state.filename, label="Image")
+
+    # def save_as(self):
+    #     OpenDirectoryDialog(app_state.save_directory, label="Save Directory")
+    #
+    # def save(self):
+    #     app_state.save()
+    #
+    # def load(self):
+    #     load_directory = StringState("")
+    #     load_directory.on_change(lambda state: app_state.load(state.value))
+    #
+    #     OpenDirectoryDialog(load_directory, label="Save Directory")
+
+
+class MenuBar(tk.Menu):
+    """
+    Menu bar of the app.
+    """
+
+    def __init__(self, root: tk.Widget):
+        super().__init__(root)
+
+        root.option_add("*tearOff", False)
+        root["menu"] = self
+
+        self.menu_file = MenuFile(self)

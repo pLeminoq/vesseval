@@ -1,6 +1,6 @@
-import time
 import threading
 
+import cv2 as cv
 import numpy as np
 from numpy.typing import NDArray
 from sam2.build_sam import build_sam2
@@ -46,7 +46,9 @@ class ImagePredictor:
         self.init_thread.join()
         self._predictor.set_image(image)
 
-    def predict(self, point_coords: NDArray, point_labels: NDArray) -> NDArray:
+    def predict(
+        self, point_coords: NDArray, point_labels: NDArray, box: NDArray
+    ) -> NDArray:
         if self.embedding_thread is None:
             raise RuntimeError(
                 "Cannot predict mask without computing the embedding first"
@@ -54,12 +56,27 @@ class ImagePredictor:
 
         self.embedding_thread.join()
 
+        multi_mask = False if point_coords is None or len(point_labels) > 1 or box is not None else True
         masks, scores, _ = self._predictor.predict(
-            point_coords=point_coords, point_labels=point_labels, multimask_output=True
+            point_coords=point_coords,
+            point_labels=point_labels,
+            multimask_output=multi_mask,
+            box=box,
         )
         return masks[np.argmax(scores)]
 
+    def predict_as_contour(
+        self, point_coords: NDArray, point_labels: NDArray, box: NDArray
+    ) -> NDArray:
+        mask = self.predict(
+            point_coords=point_coords, point_labels=point_labels, box=box
+        )
+        mask = mask.astype(np.uint8)
+        cnts, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        areas = list(map(lambda cnt: cv.contourArea(cnt), cnts))
+        cnt = cnts[np.argmax(areas)]
+        cnt = cnt[:, 0, :]
+        return cnt
 
-since = time.time()
+
 IMAGE_PREDICTOR = ImagePredictor()
-print(f"Building predictor took {time.time() - since}s")
