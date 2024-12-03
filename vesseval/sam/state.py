@@ -111,18 +111,20 @@ class AppState(HigherOrderState):
     def __init__(self):
         super().__init__()
 
-        self.filename = StringState(
-            "../segment_anything/data/ED002_004_8b_gridE425.tif"
-        )
+        # self.filename = StringState(
+        #     "../segment_anything/data/ED002_004_8b_gridE425.tif"
+        # )
+        self.filename = StringState("")
 
         self.regions = ListState()
-        self.contours = virtual_list(self.regions, lambda region_state: region_state.contour)
+        self.contours = virtual_list(
+            self.regions, lambda region_state: region_state.contour
+        )
         self.selected_region_index = IntState(-1)
 
-        # TODO:
-        #  * define internal resolution
-        #  * make computed state based on filename and internal resolution
-        self.image = self.load_image(self.filename)
+        self._image_res = None
+        self.inernal_resoluation = ResolutionState(1600, 900)
+        self.image = self.load_image(self.filename, self.inernal_resoluation)
         self.image.on_change(lambda _: self.clear_regions)
         self.image.on_change(
             lambda state: IMAGE_PREDICTOR.set_image(self.image.value), trigger=True
@@ -146,14 +148,18 @@ class AppState(HigherOrderState):
         )
 
     @computed_state
-    def load_image(self, filename: StringState) -> ImageState:
-        # TODO load empty image if filename is empty
-        return ImageState(
-            cv.cvtColor(
-                cv.resize(cv.imread(self.filename.value), (1024, 1024)),
-                cv.COLOR_BGR2RGB,
-            )
-        )
+    def load_image(
+        self, filename: StringState, resoluation: ResolutionState
+    ) -> ImageState:
+        res = resoluation.values()
+        if filename.value == "":
+            image = np.zeros((*res[::-1], 3), np.uint8)
+        else:
+            image = cv.imread(filename.value)
+            self._image_res = image.shape
+            image = cv.resize(image, res)
+            image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        return ImageState(image)
 
     def clear_regions(self):
         self.regions.clear()
