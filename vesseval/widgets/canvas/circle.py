@@ -2,6 +2,7 @@ from widget_state import HigherOrderState, IntState, StringState
 import tkinter as tk
 
 from ...state import PointState
+from ..util import stateful
 from .lib import CanvasItem
 
 
@@ -33,17 +34,27 @@ class CircleState(HigherOrderState):
         ]
 
 
+@stateful
 class Circle(CanvasItem):
 
     def __init__(self, canvas: tk.Canvas, state: CircleState):
         super().__init__(canvas, state)
 
-        self.id = self.canvas.create_oval(
-            *self.state.ltbr(),
-            fill=self.state.color.value,
-        )
+        self.id = None
 
-    def redraw(self, state):
+
+    def draw(self):
+        state = self.state
+
+        if self.id is None:
+            self.id = self.canvas.create_oval(
+                *self.state.ltbr(),
+                fill=self.state.color.value,
+                outline=state.outline.value,
+                width=state.outline_width.value,
+            )
+            return
+
         self.canvas.coords(self.id, *state.ltbr())
         self.canvas.itemconfig(
             self.id,

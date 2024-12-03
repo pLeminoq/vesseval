@@ -4,6 +4,7 @@ import tkinter as tk
 from widget_state import HigherOrderState, IntState, StringState
 
 from ...state import PointState
+from ..util import stateful
 from .lib import CanvasItem
 
 
@@ -36,17 +37,22 @@ class RectangleState(HigherOrderState):
         ]
 
 
+@stateful
 class Rectangle(CanvasItem):
 
     def __init__(self, canvas: tk.Canvas, state: RectangleState):
         super().__init__(canvas, state)
 
-        self.id = self.canvas.create_rectangle(
-            *self.state.ltbr(),
-            fill=self.state.color_state.value,
-        )
+        self.id = None
 
-    def redraw(self, state):
+    def draw(self):
+        state = self.state
+        if self.id is None:
+            self.id = self.canvas.create_rectangle(
+                *self.state.ltbr(),
+                fill=self.state.color_state.value,
+            )
+
         self.canvas.coords(self.id, *state.ltbr())
         self.canvas.itemconfig(
             self.id,
