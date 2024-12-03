@@ -1,4 +1,6 @@
+import os
 import threading
+import urllib
 
 import cv2 as cv
 import numpy as np
@@ -6,6 +8,13 @@ from numpy.typing import NDArray
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 import torch
+
+
+URL_WEIGHTS = (
+    "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt"
+)
+FILE_CHECKPOINT = "./checkpoints/sam2.1_hiera_tiny.pt"
+FILE_MODEL_CFG = "configs/sam2.1/sam2.1_hiera_t.yaml"
 
 
 class ImagePredictor:
@@ -16,11 +25,17 @@ class ImagePredictor:
     """
 
     def __init__(self) -> None:
-        self.checkpoint = "./checkpoints/sam2.1_hiera_tiny.pt"
-        self.model_cfg = "configs/sam2.1/sam2.1_hiera_t.yaml"
+        self.checkpoint = FILE_CHECKPOINT
+        self.model_cfg = FILE_MODEL_CFG
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-
         self._predictor = None
+
+        self.download_weights_thread = threading.Thread(
+            target=self.download_weights,
+            name="Download SAM Weights",
+        )
+        self.download_weights_thread.start()
+
         self.init_thread = threading.Thread(
             target=self.init_model, name="Initialize Predictor"
         )
@@ -28,7 +43,14 @@ class ImagePredictor:
 
         self.embedding_thread = None
 
+    def download_weights(self) -> None:
+        if os.path.isfile(FILE_CHECKPOINT):
+            return
+        urllib.request.urlretrieve(URL_WEIGHTS, FILE_CHECKPOINT)
+
     def init_model(self) -> None:
+        self.download_weights_thread.join()
+
         torch.inference_mode()
         torch.autocast(self.device, dtype=torch.bfloat16)
 
@@ -56,7 +78,11 @@ class ImagePredictor:
 
         self.embedding_thread.join()
 
-        multi_mask = False if point_coords is None or len(point_labels) > 1 or box is not None else True
+        multi_mask = (
+            False
+            if point_coords is None or len(point_labels) > 1 or box is not None
+            else True
+        )
         masks, scores, _ = self._predictor.predict(
             point_coords=point_coords,
             point_labels=point_labels,
@@ -77,6 +103,3 @@ class ImagePredictor:
         cnt = cnts[np.argmax(areas)]
         cnt = cnt[:, 0, :]
         return cnt
-
-
-IMAGE_PREDICTOR = ImagePredictor()

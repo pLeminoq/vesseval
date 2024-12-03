@@ -24,7 +24,9 @@ from ..state import (
 from ..state.processing import asynchron
 from ..state.util import virtual_list
 
-from .sam import IMAGE_PREDICTOR
+from .sam import ImagePredictor
+
+IMAGE_PREDICTOR = ImagePredictor()
 
 ALPHA = 0.4
 RGB_COLOR = tuple[int, int, int]
