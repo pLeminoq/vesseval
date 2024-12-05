@@ -1,6 +1,8 @@
+import json
+import os
 import time
 from threading import Thread
-from typing import Optional
+from typing import Any, Optional
 
 import cv2 as cv
 import numpy as np
@@ -25,6 +27,7 @@ from ..state.processing import asynchron
 from ..state.util import virtual_list
 
 from .sam import ImagePredictor
+
 
 IMAGE_PREDICTOR = ImagePredictor()
 
@@ -52,10 +55,12 @@ class RegionState(HigherOrderState):
     def __init__(self, pt=None, bb=None):
         super().__init__()
 
+        self._skip_update = False
+
         self.foreground_point = (
             PointState(UNUSED_VALUE, UNUSED_VALUE) if pt is None else PointState(*pt)
         )
-        self.background_points = ListState()
+        self.background_points = ContourState()
         self.foreground_box = (
             BoundingBoxState(
                 UNUSED_VALUE,
@@ -75,8 +80,12 @@ class RegionState(HigherOrderState):
         )
         self.foreground_box.on_change(lambda _: self.update_contour())
 
+
     @asynchron
     def update_contour(self):
+        if self._skip_update:
+            return
+
         with self.contour:
             self.contour.clear()
 
@@ -97,6 +106,9 @@ class RegionState(HigherOrderState):
             else:
                 input_box = np.array([self.foreground_box.tlbr()])
 
+            if input_points is None and input_box is None:
+                return
+
             cnt = IMAGE_PREDICTOR.predict_as_contour(
                 point_coords=input_points,
                 point_labels=input_labels,
@@ -105,25 +117,46 @@ class RegionState(HigherOrderState):
 
             self.contour.extend(ContourState.from_numpy(cnt))
 
+    def deserialize(self, data):
+        self._skip_update = True
+        super().deserialize(data)
+        self._skip_update = False
+
+class RegionList(ListState):
+
+    def __init__(self):
+        super().__init__()
+
+    def deserialize(self, data: list[dict[str, Any]]) -> None:
+        with self:
+            self.clear()
+
+            for value in data:
+                region_state = RegionState()
+                region_state.deserialize(value)
+                self.append(region_state)
 
 class AppState(HigherOrderState):
 
     def __init__(self):
         super().__init__()
 
-        # self.filename = StringState(
-        #     "../segment_anything/data/ED002_004_8b_gridE425.tif"
-        # )
+        self.filename_save = StringState("")
+        self.filename_save.on_change(lambda _: self.save())
+
         self.filename = StringState("")
 
-        self.regions = ListState()
+        self.regions = RegionList()
         self.contours = virtual_list(
             self.regions, lambda region_state: region_state.contour
         )
         self.selected_region_index = IntState(-1)
+        self.filename.on_change(lambda _: self.regions.clear())
+        self.filename.on_change(lambda _: self.selected_region_index.set(-1))
 
         self._image_res = None
-        self.inernal_resoluation = ResolutionState(1600, 900)
+        #TODO: internal resolution must depend on the aspect ratio of the image
+        self.inernal_resoluation = ResolutionState(1024, 1024)
         self.image = self.load_image(self.filename, self.inernal_resoluation)
         self.image.on_change(lambda _: self.clear_regions)
         self.image.on_change(
@@ -142,9 +175,11 @@ class AppState(HigherOrderState):
             element_wise=True,
         )
 
+        self.display_image_res = ResolutionState(1600, 900)
+        # self.set_display_image_resolution(get_current_screen_size())
         self.display_image = DisplayImageState(
             image_state=self.final_image,
-            resolution_state=ResolutionState(1600, 900),
+            resolution_state=self.display_image_res,
         )
 
     @computed_state
@@ -233,6 +268,53 @@ class AppState(HigherOrderState):
     def remove_region(self, region: RegionState) -> None:
         self.regions.remove(region)
         self.selected_region_index.value = -1
+
+    def eval_regions(self):
+        contours = list(map(lambda cnt: cnt.to_numpy(), self.contours))
+
+        scale_y = self._image_res[0] / self.image.value.shape[0]
+        scale_x = self._image_res[1] / self.image.value.shape[1]
+
+        table = {
+            "filename": [],
+            "index": [],
+            "area": [],
+            "perimeter": [],
+        }
+        rows = []
+        for i, contour in enumerate(contours):
+            contour[:, 0] = contour[:, 0] * scale_x
+            contour[:, 1] = contour[:, 1] * scale_x
+
+            area = cv.contourArea(contour)
+            perimeter = cv.arcLength(contour, closed=True)
+
+            table["filename"].append(self.filename.value)
+            table["index"].append(i)
+            table["area"].append(area)
+            table["perimeter"].append(perimeter)
+
+        return table
+
+    def serialize(self) -> dict[str, Any]:
+        data = super().serialize()
+        del data["contours"]
+        return data
+
+    def save(self):
+        filename, _ = os.path.splitext(self.filename_save.value)
+        filename = filename + ".json"
+        with open(filename, mode="w") as f:
+            json.dump(self.serialize(), f, indent=2)
+
+    def load(self, filename: str):
+        with self:
+            with open(filename, mode="r") as f:
+                self.deserialize(json.load(f))
+
+        store = self.selected_region_index.value
+        self.selected_region_index.value = store - 1
+        self.selected_region_index.value = store 
 
 
 app_state = AppState()
