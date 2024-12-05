@@ -1,4 +1,5 @@
 import os
+import time
 import threading
 import urllib
 
@@ -46,10 +47,16 @@ class ImagePredictor:
     def download_weights(self) -> None:
         if os.path.isfile(FILE_CHECKPOINT):
             return
+        print(f"Download SAM Model ...")
+        since = time.time()
         urllib.request.urlretrieve(URL_WEIGHTS, FILE_CHECKPOINT)
+        print(f"Download SAM Model ... DONE in {time.time() - since:.3f}s!")
 
     def init_model(self) -> None:
         self.download_weights_thread.join()
+
+        since = time.time()
+        print(f"Init SAM Model ...")
 
         torch.inference_mode()
         torch.autocast(self.device, dtype=torch.bfloat16)
@@ -57,6 +64,7 @@ class ImagePredictor:
         self._predictor = SAM2ImagePredictor(
             build_sam2(self.model_cfg, self.checkpoint, self.device)
         )
+        print(f"Init SAM Model ... DONE in {time.time() - since:.3f}s!")
 
     def set_image(self, image: NDArray) -> None:
         self.embedding_thread = threading.Thread(
@@ -65,8 +73,13 @@ class ImagePredictor:
         self.embedding_thread.start()
 
     def _set_image_sync(self, image: NDArray) -> None:
+        since = time.time()
+        print(f"Compute SAM Embedding ... {image.shape=}")
+
         self.init_thread.join()
         self._predictor.set_image(image)
+
+        print(f"Compute SAM Embedding ... DONE in {time.time() - since:.3f}s!")
 
     def predict(
         self, point_coords: NDArray, point_labels: NDArray, box: NDArray
@@ -77,6 +90,9 @@ class ImagePredictor:
             )
 
         self.embedding_thread.join()
+
+        since = time.time()
+        print(f"Predict SAM mask ...")
 
         multi_mask = (
             False
@@ -89,6 +105,7 @@ class ImagePredictor:
             multimask_output=multi_mask,
             box=box,
         )
+        print(f"Predict SAM Mask ... DONE in {time.time() - since:.3f}s!")
         return masks[np.argmax(scores)]
 
     def predict_as_contour(

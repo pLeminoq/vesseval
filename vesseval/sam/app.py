@@ -50,8 +50,6 @@ class App(tk.Tk):
         height = monitor.height - 200 - geometry.y
         width = round(height * 16.0 / 9.0)
         app_state.display_image_res.set(width, height)
-        print(f"{str(app_state.display_image_res)=}")
-
 
         self.state = app_state
 
