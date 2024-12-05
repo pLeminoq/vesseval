@@ -49,6 +49,7 @@ class App(tk.Tk):
         monitor = get_active_monitor(geometry)
         height = monitor.height - 200 - geometry.y
         width = round(height * 16.0 / 9.0)
+        print(f"Set display resolution to {(width, height)=}")
         app_state.display_image_res.set(width, height)
 
         self.state = app_state
