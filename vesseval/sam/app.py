@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import cv2 as cv
 import tkinter as tk
 
@@ -9,17 +10,31 @@ from .mode import PointMode, BoxMode
 from .state import app_state, RegionState
 from .toolbar import Toolbar
 
-"""
-#TODO:
-* Implement menue:
-  * open image
-  * evaluate regions
-    * area, circumference, something else
-    * allow copying to excel
-  * save state
-    * for every region: contour, fg_box, fg_point, bg_points
-  * restore state
-"""
+
+@dataclass
+class Geometry:
+    width: int
+    height: int
+    x: int
+    y: int
+
+    @classmethod
+    def from_str(cls, geometry_str: str):
+        _split = geometry_str.split("+")
+        width, height = map(int, _split[0].split("x"))
+        x, y = map(int, _split[1:])
+        return cls(width=width, height=height, x=x, y=y)
+
+
+def get_active_monitor(geometry: str | Geometry):
+    geometry = Geometry.from_str(geometry) if isinstance(geometry, str) else geometry
+
+    import screeninfo
+
+    for monitor in screeninfo.get_monitors():
+        if monitor.x <= geometry.x < monitor.x + monitor.width:
+            return monitor
+    return screeninfo.get_monitors()[0]
 
 
 class App(tk.Tk):
@@ -27,6 +42,16 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.configure(bg="#757575")
+
+        self.update_idletasks()
+        # geometry = Geometry.from_str(self.winfo_geometry())
+        geometry = Geometry.from_str(self.winfo_geometry())
+        monitor = get_active_monitor(geometry)
+        height = monitor.height - 200 - geometry.y
+        width = round(height * 16.0 / 9.0)
+        app_state.display_image_res.set(width, height)
+        print(f"{str(app_state.display_image_res)=}")
+
 
         self.state = app_state
 
