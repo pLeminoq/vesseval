@@ -15,6 +15,9 @@ args = parser.parse_args()
 
 if args.segment_anything:
     from .sam.app import App
+    from .sam.state import app_state
+
+    app_state.filename.set(args.image)
 
     app = App()
     app.mainloop()
