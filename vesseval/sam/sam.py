@@ -43,6 +43,7 @@ class ImagePredictor:
         self.init_thread.start()
 
         self.embedding_thread = None
+        self.embedding_lock = threading.Lock()
 
     def download_weights(self) -> None:
         if os.path.isfile(FILE_CHECKPOINT):
@@ -67,19 +68,27 @@ class ImagePredictor:
         print(f"Init SAM Model ... DONE in {time.time() - since:.3f}s!")
 
     def set_image(self, image: NDArray) -> None:
-        self.embedding_thread = threading.Thread(
-            target=self._set_image_sync, args=(image,)
-        )
-        self.embedding_thread.start()
+        with self.embedding_lock:
+            self.embedding_thread = threading.Thread(
+                target=self._set_image_sync, args=(image,)
+            )
+            self.embedding_thread.start()
 
     def _set_image_sync(self, image: NDArray) -> None:
-        since = time.time()
-        print(f"Compute SAM Embedding ... {image.shape=}")
+        with self.embedding_lock:
+            if np.all(image == 0):
+                print(f"Skip embedding because image is all zeros...")
+                self.embedding_thread = None
+                return
 
-        self.init_thread.join()
-        self._predictor.set_image(image)
+            since = time.time()
+            print(f"Compute SAM Embedding ... {image.shape=}")
 
-        print(f"Compute SAM Embedding ... DONE in {time.time() - since:.3f}s!")
+            self.init_thread.join()
+            self._predictor.set_image(image)
+
+            print(f"Compute SAM Embedding ... DONE in {time.time() - since:.3f}s!")
+
 
     def predict(
         self, point_coords: NDArray, point_labels: NDArray, box: NDArray
