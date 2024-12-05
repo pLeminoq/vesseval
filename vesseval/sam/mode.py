@@ -82,7 +82,6 @@ class PointMode(AbstractMode):
         for i, region in enumerate(app_state.regions):
             contour = region.contour.to_numpy()
             if len(contour) == 0:
-                print(f"Skip select region for empty contour ...")
                 continue
 
             is_inside = (

@@ -27,6 +27,7 @@ from ..state.processing import asynchron
 from ..state.util import virtual_list
 
 from .sam import ImagePredictor
+from .util import Geometry, get_active_monitor
 
 
 IMAGE_PREDICTOR = ImagePredictor()
@@ -80,7 +81,6 @@ class RegionState(HigherOrderState):
         )
         self.foreground_box.on_change(lambda _: self.update_contour())
 
-
     @asynchron
     def update_contour(self):
         if self._skip_update:
@@ -122,6 +122,7 @@ class RegionState(HigherOrderState):
         super().deserialize(data)
         self._skip_update = False
 
+
 class RegionList(ListState):
 
     def __init__(self):
@@ -135,6 +136,7 @@ class RegionList(ListState):
                 region_state = RegionState()
                 region_state.deserialize(value)
                 self.append(region_state)
+
 
 class AppState(HigherOrderState):
 
@@ -154,10 +156,34 @@ class AppState(HigherOrderState):
         self.filename.on_change(lambda _: self.regions.clear())
         self.filename.on_change(lambda _: self.selected_region_index.set(-1))
 
-        self._image_res = None
-        #TODO: internal resolution must depend on the aspect ratio of the image
-        self.inernal_resoluation = ResolutionState(1024, 1024)
-        self.image = self.load_image(self.filename, self.inernal_resoluation)
+        self.original_image = self.load_image(self.filename)
+
+        # original image resolution - is needed for evaluation of region stats in original size
+        self.original_resolution = ResolutionState(0, 0)
+        self.original_image.on_change(
+            lambda _: self.original_resolution.set(
+                *self.original_image.value.shape[:2][::-1]
+            ),
+            trigger=True,
+        )
+
+        # internal resolution is for internal processing
+        # it ensures that the image will be smaller than 1024 pixel so that processing
+        # by the SAM model remains fast
+        self.internal_resolution = ResolutionState(0, 0)
+        self.original_resolution.on_change(
+            lambda _: self.internal_resolution.set(
+                *self.compute_internal_resolution(self.original_resolution)
+            ),
+            trigger=True,
+        )
+
+        # canvas resolution
+        # this resolution determines the size of the displayed canvas/GUI
+        self.canvas_resolution = ResolutionState(1600, 900)
+
+        # TODO: internal resolution must depend on the aspect ratio of the image
+        self.image = self.resize_image(self.original_image, self.internal_resolution)
         self.image.on_change(lambda _: self.clear_regions)
         self.image.on_change(
             lambda state: IMAGE_PREDICTOR.set_image(self.image.value), trigger=True
@@ -175,26 +201,47 @@ class AppState(HigherOrderState):
             element_wise=True,
         )
 
-        self.display_image_res = ResolutionState(1600, 900)
-        # self.set_display_image_resolution(get_current_screen_size())
         self.display_image = DisplayImageState(
             image_state=self.final_image,
-            resolution_state=self.display_image_res,
+            resolution_state=self.canvas_resolution,
         )
 
     @computed_state
-    def load_image(
-        self, filename: StringState, resoluation: ResolutionState
-    ) -> ImageState:
-        res = resoluation.values()
+    def load_image(self, filename: StringState) -> ImageState:
         if filename.value == "":
-            image = np.zeros((*res[::-1], 3), np.uint8)
+            image = np.zeros((1024, 1024, 3), np.uint8)
         else:
             image = cv.imread(filename.value)
-            self._image_res = image.shape
-            image = cv.resize(image, res)
             image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         return ImageState(image)
+
+    def compute_internal_resolution(
+        self, original_resolution: ResolutionState
+    ) -> tuple[int, int]:
+        original_resolution = original_resolution.values()
+
+        max_dim = np.argmax(original_resolution)
+        max_res = min(original_resolution[max_dim], 1024)
+
+        scale = max_res / original_resolution[max_dim]
+
+        width = round(original_resolution[0] * scale)
+        height = round(original_resolution[1] * scale)
+
+        return width, height
+
+    @computed_state
+    def resize_image(
+        self, original_image: ImageState, internal_resolution: ResolutionState
+    ) -> ImageState:
+        return ImageState(cv.resize(original_image.value, internal_resolution.values()))
+
+    def configure_canvas_resolution(self, geometry_str: str):
+        geometry = Geometry.from_str(geometry_str)
+        monitor = get_active_monitor(geometry)
+        height = monitor.height - 200 - geometry.y
+        width = round(height * 16.0 / 9.0)
+        self.canvas_resolution.set(width, height)
 
     def clear_regions(self):
         self.regions.clear()
@@ -272,8 +319,8 @@ class AppState(HigherOrderState):
     def eval_regions(self):
         contours = list(map(lambda cnt: cnt.to_numpy(), self.contours))
 
-        scale_y = self._image_res[0] / self.image.value.shape[0]
-        scale_x = self._image_res[1] / self.image.value.shape[1]
+        scale_y = self.original_resolution.height.value / self.image.value.shape[0]
+        scale_x = self.original_resolution.width.value / self.image.value.shape[1]
 
         table = {
             "filename": [],
@@ -314,7 +361,7 @@ class AppState(HigherOrderState):
 
         store = self.selected_region_index.value
         self.selected_region_index.value = store - 1
-        self.selected_region_index.value = store 
+        self.selected_region_index.value = store
 
 
 app_state = AppState()
