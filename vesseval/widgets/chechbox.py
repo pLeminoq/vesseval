@@ -1,9 +1,9 @@
 import tkinter as tk
 
-from ..state import BoolState, HigherState, StringState
+from widget_state import BoolState, HigherOrderState, StringState
 
 
-class CheckboxState(HigherState):
+class CheckboxState(HigherOrderState):
 
     def __init__(self, bool_state: BoolState, label_state: StringState = ""):
         super().__init__()

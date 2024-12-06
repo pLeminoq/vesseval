@@ -1,62 +1,64 @@
-from typing import Callable, Optional
-
-import tkinter as tk
 from widget_state import HigherOrderState, IntState, StringState
+import tkinter as tk
 
 from ...state import PointState
 from ..util import stateful
 from .lib import CanvasItem
 
 
-class RectangleState(HigherOrderState):
-
+class CircleState(HigherOrderState):
     def __init__(
         self,
-        center_state: PointState,
-        size_state: IntState = 9,
-        color_state: StringState = "green",
+        center: PointState,
+        radius: IntState = 9,
+        color: StringState = "green",
         outline: StringState = "black",
         outline_width: IntState = 1,
     ):
         super().__init__()
 
-        self.center_state = center_state
-        self.size_state = size_state
-        self.color_state = color_state
+        self.center = center
+        self.radius = radius
+        self.color = color
         self.outline = outline
         self.outline_width = outline_width
 
     def ltbr(self):
-        size_state_h = self.size_state.value // 2
-        x, y = self.center_state.values()
+        radius = self.radius.value
+        cx, cy = self.center.values()
         return [
-            x - size_state_h,
-            y - size_state_h,
-            x + size_state_h,
-            y + size_state_h,
+            cx - radius,
+            cy - radius,
+            cx + radius,
+            cy + radius,
         ]
 
 
 @stateful
-class Rectangle(CanvasItem):
+class Circle(CanvasItem):
 
-    def __init__(self, canvas: tk.Canvas, state: RectangleState):
+    def __init__(self, canvas: tk.Canvas, state: CircleState):
         super().__init__(canvas, state)
 
         self.id = None
 
+
     def draw(self):
         state = self.state
+
         if self.id is None:
-            self.id = self.canvas.create_rectangle(
+            self.id = self.canvas.create_oval(
                 *self.state.ltbr(),
-                fill=self.state.color_state.value,
+                fill=self.state.color.value,
+                outline=state.outline.value,
+                width=state.outline_width.value,
             )
+            return
 
         self.canvas.coords(self.id, *state.ltbr())
         self.canvas.itemconfig(
             self.id,
-            fill=state.color_state.value,
+            fill=state.color.value,
             outline=state.outline.value,
             width=state.outline_width.value,
         )

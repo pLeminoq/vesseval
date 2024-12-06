@@ -6,8 +6,7 @@ import os
 
 import tkinter as tk
 from tkinter import filedialog, ttk
-
-from ...state import StringState
+from widget_state import StringState
 
 from .widgets import FileSelection, FileSelectionState
 

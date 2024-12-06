@@ -2,21 +2,15 @@ from typing import Callable
 from typing_extensions import Self
 
 import tkinter as tk
-
-from ...state import State
-
+from widget_state import State
 
 class CanvasItem:
 
     def __init__(self, canvas: tk.Canvas, state: State):
         self.canvas = canvas
-        self.state = state
+        self.widget = canvas
+
         self.bindings = []
-
-        self.state.on_change(self.redraw)
-
-    def redraw(self, state):
-        pass
 
     def tag_bind(self, binding: str, callback: Callable[[tk.Event, Self], None]):
         self.bindings.append(binding)

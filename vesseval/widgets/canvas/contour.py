@@ -2,14 +2,14 @@ from typing import List
 
 import numpy as np
 import tkinter as tk
+from widget_state import HigherOrderState
 
-from ...state import HigherState, ContourState, PointState
-
+from ...state import ContourState, PointState
 from .line import Line, LineState
 from .rectangle import Rectangle, RectangleState
 
 
-class DisplayContourState(HigherState):
+class DisplayContourState(HigherOrderState):
 
     def __init__(
         self,

@@ -1,12 +1,12 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
+from widget_state import StringState, HigherOrderState
 
-from ....state import StringState, HigherState
 from ....widgets import Label
 from ....widgets import TextField
 
 
-class FileSelectionState(HigherState):
+class FileSelectionState(HigherOrderState):
 
     def __init__(
         self, label: StringState, filename: StringState = "", file_type="file"

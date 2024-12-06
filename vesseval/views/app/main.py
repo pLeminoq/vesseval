@@ -48,6 +48,7 @@ class App(tk.Tk):
         self.toolbar.state.erase_mode.on_change(self.on_erase_mode, trigger=True)
 
         self.image = Image(self.canvas, app_state.display_image_state)
+        print(app_state.display_image_state.resolution_state)
         self.contour = Contour(
             self.canvas,
             DisplayContourState(self.state.contour_state, rectangle_color="white"),

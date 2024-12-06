@@ -8,9 +8,7 @@ import tkinter as tk
 from tkinter import filedialog
 from widget_state import StringState
 
-from ...util import mask_image
-from ..preprocessing import PreprocessingView, PreprocessingViewState
-from ..dialog.open import OpenFileDialog, OpenDirectoryDialog
+from ..views.dialog.open import OpenFileDialog, SaveAsFileDialog
 from .state import app_state
 
 
@@ -33,9 +31,9 @@ class MenuFile(tk.Menu):
         self.add_separator()
         self.add_command(label="Load", command=self.load)
 
-        app_state.save_directory.on_change(
-            lambda save_directory: self.entryconfigure(
-                2, state=tk.DISABLED if save_directory.value == "" else tk.ACTIVE
+        app_state.filename_save.on_change(
+            lambda state: self.entryconfigure(
+                2, state=tk.DISABLED if state.value == "" else tk.ACTIVE
             ),
             trigger=True,
         )
@@ -44,45 +42,48 @@ class MenuFile(tk.Menu):
         """
         Open a new image with a user dialog.
         """
-        OpenFileDialog(app_state.filename_state, label="Image")
+        OpenFileDialog(app_state.filename, label="Image")
 
     def save_as(self):
-        OpenDirectoryDialog(app_state.save_directory, label="Save Directory")
+        SaveAsFileDialog(app_state.filename_save)
 
     def save(self):
         app_state.save()
 
     def load(self):
-        load_directory = StringState("")
-        load_directory.on_change(lambda state: app_state.load(state.value))
+        filename = StringState("")
+        filename.on_change(lambda state: app_state.load(state.value))
 
-        OpenDirectoryDialog(load_directory, label="Save Directory")
+        OpenFileDialog(filename, label="App State")
 
 
 class MenuTools(tk.Menu):
+    """
+    The File menu containing options to
+      * open an image
+    """
 
-    def __init__(self, menu_bar: tk.Menu):
+    def __init__(self, menu_bar):
         super().__init__(menu_bar)
 
         menu_bar.add_cascade(menu=self, label="Tools")
 
-        self.add_command(
-            label="Process Contour",
-            command=lambda *args: PreprocessingView(
-                PreprocessingViewState(
-                    mask_image(
-                        app_state.display_image_state,
-                        app_state.contour_state,
-                    )
-                )
-            ),
-        )
-        app_state.contour_state.on_change(self.on_contour, trigger=True)
+        # add commands
+        self.add_command(label="Eval", command=self.eval)
 
-    def on_contour(self, contour_state):
-        self.entryconfigure(
-            0, state=tk.DISABLED if len(contour_state) < 3 else tk.ACTIVE
-        )
+    def eval(self):
+        table = app_state.eval_regions()
+
+        rows = []
+        for i in range(len(table["filename"])):
+            row = list(map(lambda key: str(table[key][i]), table.keys()))
+            rows.append("\t".join(row))
+        txt = "\n".join(rows)
+        print(txt)
+        print()
+
+        self.clipboard_clear()
+        self.clipboard_append(txt)
 
 
 class MenuBar(tk.Menu):

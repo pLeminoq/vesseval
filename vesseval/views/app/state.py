@@ -3,6 +3,7 @@ import os
 
 import cv2 as cv
 import numpy as np
+from widget_state import computed_state, FloatState, HigherOrderState, StringState, ObjectState
 
 from ...state import (
     ContourState,
@@ -10,16 +11,11 @@ from ...state import (
     ImageState,
     ImageConfigState,
     ResolutionState,
-    computed_state,
-    FloatState,
-    HigherState,
-    StringState,
-    ObjectState,
 )
 
 placeholder_image = np.zeros((512, 512, 3), np.uint8)
 
-class AppState(HigherState):
+class AppState(HigherOrderState):
 
     def __init__(self):
         super().__init__()

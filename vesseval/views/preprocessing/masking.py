@@ -2,12 +2,9 @@ import cv2 as cv
 import numpy as np
 import tkinter as tk
 from tktooltip import ToolTip
+from widget_state import computed_state, HigherOrderState, IntState, BoolState
 
 from ...state import (
-    HigherState,
-    computed_state,
-    IntState,
-    BoolState,
     DisplayImageState,
     ImageState,
 )
@@ -15,7 +12,7 @@ from ...widgets.canvas import Image
 from ...widgets import Scale, ScaleState, Checkbox, CheckboxState
 
 
-class MorphOpsState(HigherState):
+class MorphOpsState(HigherOrderState):
 
     def __init__(self):
         super().__init__()
@@ -26,7 +23,7 @@ class MorphOpsState(HigherState):
         self.closing_size = IntState(10)
 
 
-class MaskingState(HigherState):
+class MaskingState(HigherOrderState):
 
     def __init__(
         self,

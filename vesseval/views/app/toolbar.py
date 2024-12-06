@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
+from widget_state import BoolState, HigherOrderState
 
 from ...resources import icons
-from ...state import BoolState, HigherState
 
 
-class ToolbarState(HigherState):
+class ToolbarState(HigherOrderState):
 
     def __init__(self):
         super().__init__()

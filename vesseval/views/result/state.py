@@ -4,14 +4,13 @@ import shutil
 import tempfile
 
 import cv2 as cv
-
-from ...state import HigherState, StringState
+from widget_state import HigherOrderState, StringState
 
 from .cell_layer import CellLayerState
 
 from ..app.state import app_state
 
-class ResultViewState(HigherState):
+class ResultViewState(HigherOrderState):
 
     def __init__(
         self, cell_layer_state_1: CellLayerState, cell_layer_state_2: CellLayerState

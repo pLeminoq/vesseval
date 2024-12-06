@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+from widget_state import IntState, StringState
 
-from ..state import IntState, StringState
+from ..state.util import to_tk_string_var
 
 
 class TextField(ttk.Entry):
@@ -10,7 +11,7 @@ class TextField(ttk.Entry):
     """
 
     def __init__(self, parent: tk.Widget, state: StringState, **kwargs):
-        super().__init__(parent, textvariable=state.to_tk_string_var(), **kwargs)
+        super().__init__(parent, textvariable=to_tk_string_var(state), **kwargs)
 
         self.state = state
 
