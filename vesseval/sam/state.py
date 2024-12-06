@@ -5,6 +5,7 @@ from threading import Thread
 from typing import Any, Optional
 
 import cv2 as cv
+import diplib as dip
 import numpy as np
 from widget_state import (
     HigherOrderState,
@@ -323,23 +324,62 @@ class AppState(HigherOrderState):
         scale_x = self.original_resolution.width.value / self.image.value.shape[1]
 
         table = {
-            "filename": [],
             "index": [],
             "area": [],
             "perimeter": [],
+            "cut_off": [],
+            "roundness": [],
+            "circularity": [],
+            "feret_max": [],
+            "feret_min": [],
+            "feret_perp_min": [],
+            "feret_max_angle": [],
+            "feret_min_angle": [],
+            "filename": [],
         }
         rows = []
-        for i, contour in enumerate(contours):
-            contour[:, 0] = contour[:, 0] * scale_x
-            contour[:, 1] = contour[:, 1] * scale_x
 
-            area = cv.contourArea(contour)
-            perimeter = cv.arcLength(contour, closed=True)
+        for i, contour in enumerate(contours, start=1):
+            cut_off_min = (contour <= 0).any()
+            cut_off_max_x = (
+                contour[:, 0].max() >= (self.image.value.shape[1] - 1)
+            ).any()
+            cut_off_max_y = (
+                contour[:, 1].max() >= (self.image.value.shape[0] - 1)
+            ).any()
+            cut_off = cut_off_min or cut_off_max_x or cut_off_max_y
+
+            contour[:, 0] = np.rint(contour[:, 0] * scale_x)
+            contour[:, 1] = np.rint(contour[:, 1] * scale_x)
+
+            label = 1
+            label_img = np.zeros(
+                (
+                    self.original_resolution.height.value,
+                    self.original_resolution.width.value,
+                ),
+                dtype=np.uint8,
+            )
+            label_img = cv.drawContours(
+                label_img, [contour], contourIdx=-1, color=label, thickness=-1
+            )
+            measures = dip.MeasurementTool.Measure(
+                label_img,
+                features=["Size", "Perimeter", "Feret", "Roundness", "Circularity"],
+            )
 
             table["filename"].append(self.filename.value)
             table["index"].append(i)
-            table["area"].append(area)
-            table["perimeter"].append(perimeter)
+            table["area"].append(measures[label]["Size"][0])
+            table["perimeter"].append(measures[label]["Perimeter"][0])
+            table["cut_off"].append(cut_off)
+            table["roundness"].append(measures[label]["Roundness"][0])
+            table["circularity"].append(measures[label]["Circularity"][0])
+            table["feret_max"].append(measures[label]["Feret"][0])
+            table["feret_min"].append(measures[label]["Feret"][1])
+            table["feret_perp_min"].append(measures[label]["Feret"][2])
+            table["feret_max_angle"].append(measures[label]["Feret"][3])
+            table["feret_min_angle"].append(measures[label]["Feret"][4])
 
         return table
 
