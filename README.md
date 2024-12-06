@@ -1,8 +1,24 @@
 # VessEval
 Vess(el) eval(uation) is a small GUI application to evaluate the muscularization of pulmonary vessels.
 
+## System Requirements
+#### Hardware
+VessEval should run on any normal desktop computer.
+
+#### Software
+VessEval requires Python 3.10 or newer.
+It was tested on Linux (Ubuntu 22.04) and Windows (10 & 11).
+
+##### Dependencies
+See [requirements.txt](requirements.txt).
+Vesseval mainly depends on the image processing libraries OpenCV and Pillow.
+
 ## Installation
-* `pip install -r requirement.txt`
+Currently VessEval can only be installed from Github:
+```
+git clone https://github.com/pleminoq/vesseval
+pip install -r requirement.txt`
+```
 
 ### Notes
 Notes for my colleagues using Windows in a restrictive environment:
@@ -14,9 +30,16 @@ Notes for my colleagues using Windows in a restrictive environment:
 ## Run
 * `python -m vesseval`
 
-# Usage
+## Usage
+
+#### Demo
+
 [vesseval_demo.webm](https://github.com/user-attachments/assets/66f47dec-8b23-4105-b8e8-71e2dbc7eaf2)
 
+The image seen in the demo is provided with VessEval.
+It can be opened from [demo_data/example_image.tif](demo_data/example_image.tif).
+
+#### Description
 To evaluate the muscularization of a pulmonary vessel, a rough outline must first be drawn.
 In VessEval this is done by creating a bounding box.
 The bounding box can then be refined:
@@ -35,3 +58,8 @@ This step will detect and draw an inner contour (blue) and an outer contour (red
 These contours can be modified similar to the bounding box that outlines the vessel (see above).
 The evaluated parameters can be copied to a single row of an Excel spreadsheet.
 
+## How automatic Vessel processing works
+After a vessel has been roughly outlined, this part of the image is cut out.
+After this part of the image has maunally been preprocessed (thresholding, opening, closing), Vesseval `shoots` rays from its center in angle steps of 6°.
+Each ray is checked for intersections with green pixels (vascular cells) or red pixels (muscle cells).
+The innermost and outermost intersections with all rays form an inner and and outer contour and allow the calculation of vessel statistics.
