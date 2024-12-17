@@ -10,11 +10,11 @@ from .region import RegionView
 from .state import app_state, RegionState
 from .toolbar import Toolbar
 
-
 class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.title("VessEval - SAM")
         self.configure(bg="#757575")
 
         self.state = app_state
