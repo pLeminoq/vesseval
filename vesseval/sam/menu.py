@@ -42,7 +42,8 @@ class MenuFile(tk.Menu):
         """
         Open a new image with a user dialog.
         """
-        OpenFileDialog(app_state.filename, label="Image")
+        # OpenFileDialog(app_state.filename, label="Image")
+        app_state.filename.set(filedialog.askopenfilename())
 
     def save_as(self):
         SaveAsFileDialog(app_state.filename_save)
