@@ -59,6 +59,8 @@ class RegionState(HigherOrderState):
 
         self._skip_update = False
 
+        self.label = StringState(None)
+
         self.foreground_point = (
             PointState(UNUSED_VALUE, UNUSED_VALUE) if pt is None else PointState(*pt)
         )
@@ -325,6 +327,7 @@ class AppState(HigherOrderState):
 
         table = {
             "index": [],
+            "category": [],
             "area": [],
             "perimeter": [],
             "cut_off": [],
@@ -370,6 +373,7 @@ class AppState(HigherOrderState):
 
             table["filename"].append(self.filename.value)
             table["index"].append(i)
+            table["category"].append(self.regions[i - 1].label.value)
             table["area"].append(measures[label]["Size"][0])
             table["perimeter"].append(measures[label]["Perimeter"][0])
             table["cut_off"].append(cut_off)

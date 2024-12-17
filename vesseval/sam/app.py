@@ -6,6 +6,7 @@ from ..widgets.canvas import Image, Circle, CircleState, BoundingBox
 
 from .menu import MenuBar
 from .mode import PointMode, BoxMode
+from .region import RegionView
 from .state import app_state, RegionState
 from .toolbar import Toolbar
 
@@ -28,7 +29,8 @@ class App(tk.Tk):
         self.menu_bar = MenuBar(self)
 
         self.toolbar = Toolbar(self)
-        self.toolbar.grid(column=0, row=0, sticky=tk.W + tk.E)
+        self.toolbar.grid(column=0, row=0, sticky=tk.W + tk.E, columnspan=2)
+        # self.toolbar.grid(column=0, row=0, sticky=tk.W + tk.E, rowspan=2)
 
         self.canvas = tk.Canvas(self, highlightthickness=0)
         self.canvas.configure(bg="#757575")
@@ -44,6 +46,9 @@ class App(tk.Tk):
         self.fg_box = None
 
         self.state.selected_region_index.on_change(lambda _: self.on_select_region())
+
+        self.region_view = RegionView(self)
+        self.region_view.grid(row=1, column=1, sticky="nswe")
 
         self.bind("<Key-q>", lambda event: exit(0))
 

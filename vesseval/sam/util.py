@@ -17,8 +17,11 @@ class Geometry:
         x, y = map(int, _split[1:])
         return cls(width=width, height=height, x=x, y=y)
 
+    def __str__(self):
+        return f"{self.width}x{self.height}+{self.x}+{self.y}"
 
-def get_active_monitor(geometry: str | Geometry):
+
+def get_active_monitor(geometry: str | Geometry) -> screeninfo.common.Monitor:
     geometry = Geometry.from_str(geometry) if isinstance(geometry, str) else geometry
 
     for monitor in screeninfo.get_monitors():
