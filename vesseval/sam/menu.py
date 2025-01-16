@@ -80,6 +80,7 @@ class MenuTools(tk.Menu):
             row = list(map(lambda key: str(table[key][i]), table.keys()))
             rows.append("\t".join(row))
         txt = "\n".join(rows)
+        print("\t".join(list(table.keys())))
         print(txt)
         print()
 
