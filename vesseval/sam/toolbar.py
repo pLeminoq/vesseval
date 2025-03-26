@@ -18,10 +18,11 @@ class ToolbarState(HigherOrderState):
 
         self.point_mode = BoolState(True)
         self.box_mode = BoolState(False)
+        self.grid_mode = BoolState(False)
 
         self._default_mode = self.point_mode
 
-        self._modes = [self.point_mode, self.box_mode]
+        self._modes = [self.point_mode, self.box_mode, self.grid_mode]
         for mode in self._modes:
             mode.on_change(self.one_of)
 
@@ -77,7 +78,12 @@ class Toolbar(tk.Frame):
             trigger=True,
         )
 
+        self.grid_image = icons["grid"].tk_image(height=40)
+        self.grid_button = tk.Button(self, image=self.grid_image, command=lambda *args: self.state.grid_mode.set(True))
+        self.state.grid_mode.on_change(lambda state: self.grid_button.config(state=tk.DISABLED if state.value else tk.NORMAL), trigger=True)
+
         self.point_button.grid(
             column=0, row=0, padx=(10, 0), pady=(10, 10), sticky=tk.W
         )
         self.box_button.grid(column=1, row=0, padx=(5, 0), pady=(10, 10), sticky=tk.W)
+        self.grid_button.grid(column=2, row=0, padx=(5, 0), pady=(10, 10), sticky=tk.W) 
