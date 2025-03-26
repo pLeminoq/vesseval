@@ -3,8 +3,6 @@ import os
 from PIL import ImageTk
 from PIL import Image as ImagePIL
 
-_dir = os.path.dirname(__file__)
-
 
 class Icon:
 
@@ -27,8 +25,10 @@ class Icon:
         )
 
 
-icons = {
-    "arrow": Icon(os.path.join(_dir, "icons", "arrow_selector.png")),
-    "rectangle": Icon(os.path.join(_dir, "icons", "rectangle.png")),
-    "eraser": Icon(os.path.join(_dir, "icons", "eraser.png")),
-}
+dir_icons = os.path.join(os.path.dirname(__file__), "icons")
+icons = dict(
+    [
+        (os.path.splitext(f)[0], Icon(os.path.join(dir_icons, f)))
+        for f in os.listdir(dir_icons)
+    ]
+)
