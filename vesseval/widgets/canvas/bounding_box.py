@@ -13,6 +13,8 @@ from .rectangle import Rectangle, RectangleState
 class BoundingBoxStyle(HigherOrderState):
 
     def __init__(self):
+        super().__init__()
+
         self.rectangle_color = StringState("white")
         self.rectangle_size = IntState(10)
         self.rectangle_outline = StringState("black")
