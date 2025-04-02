@@ -76,15 +76,26 @@ class RegionState(HigherOrderState):
             else BoundingBoxState(*bb)
         )
         self.contour = ContourState()
-        self.update_contour()
 
-        self.foreground_point.on_change(lambda _: self.update_contour())
+        """
+        Note: this is a workaround because `asynchron` as a decorator had the bug
+        that an instance method would be synchronized across all instances. Using
+        the lambda, it is ensured that the synchronization happens per-instance.
+        The bug is fixed but I am not able to update depencies because my colleagues
+        currently cannot instlal new dependencies.
+        TODO: replace decorator on instance method with `async_once` on new 
+        release of reacTk dependency.
+        """
+        self._update_contour_async = asynchron(lambda: self.update_contour())
+        self._update_contour_async()
+
+        self.foreground_point.on_change(lambda _: self._update_contour_async())
         self.background_points.on_change(
-            lambda _: self.update_contour(), element_wise=True
+            lambda _: self._update_contour_async(), element_wise=True
         )
-        self.foreground_box.on_change(lambda _: self.update_contour())
+        self.foreground_box.on_change(lambda _: self._update_contour_async())
 
-    @asynchron
+    # @asynchron
     def update_contour(self):
         if self._skip_update:
             return
