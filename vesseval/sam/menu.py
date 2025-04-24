@@ -3,10 +3,12 @@ Components of the menu bar.
 """
 
 import os
-
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+
+import cv2 as cv
+import numpy as np
 from widget_state import StringState
 
 from ..state.util import to_tk_string_var
@@ -75,6 +77,9 @@ class MenuTools(tk.Menu):
 
         # add commands
         self.add_command(label="Eval", command=self.eval)
+        self.add_separator()
+        self.add_command(label="Normalize", command=self.normalize)
+        self.add_command(label="Equalize Histogram", command=self.equalize_hist)
 
     def eval(self):
         table = app_state.eval_regions()
@@ -90,6 +95,20 @@ class MenuTools(tk.Menu):
 
         self.clipboard_clear()
         self.clipboard_append(txt)
+
+    def normalize(self):
+        _img = cv.cvtColor(app_state.original_image.value, cv.COLOR_BGR2GRAY)
+        _img = (_img - _img.min()) / (_img.max() - _img.min())
+        _img = (255 * _img).astype(np.uint8)
+        _img = cv.cvtColor(_img, cv.COLOR_GRAY2BGR)
+        app_state.original_image.value = _img
+
+    def equalize_hist(self):
+        _img = cv.cvtColor(app_state.original_image.value, cv.COLOR_BGR2GRAY)
+        _img = cv.equalizeHist(_img)
+        _img = cv.cvtColor(_img, cv.COLOR_GRAY2BGR)
+        app_state.original_image.value = _img
+
 
 class MenuOptions(tk.Menu):
     """
