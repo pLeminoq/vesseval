@@ -14,6 +14,7 @@ from widget_state import (
     ObjectState,
     IntState,
     computed_state,
+    FloatState,
 )
 
 from ..state import (
@@ -160,7 +161,12 @@ class AppState(HigherOrderState):
         self.filename_save = StringState("")
         self.filename_save.on_change(lambda _: self.save())
 
+        self.pixel_size_x = FloatState(1.0)
+        self.pixel_size_y = FloatState(1.0)
+        self.pixel_unit = StringState("mm")
+
         self.filename = StringState("")
+        self.filename.on_change(self.update_pixel_size)
 
         self.regions = RegionList()
         self.contours = virtual_list(
@@ -228,6 +234,17 @@ class AppState(HigherOrderState):
             image = cv.imread(filename.value)
             image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         return ImageState(image)
+
+    def update_pixel_size(self, filename: StringState):
+        dip_img = dip.ImageRead(filename.value)
+        pixel_size = dip_img.PixelSize()
+
+        physical_q_x = pixel_size[0]
+        self.pixel_size_x.value = physical_q_x.magnitude
+        self.pixel_unit.value = physical_q_x.units
+
+        physical_q_y = pixel_size[1]
+        self.pixel_size_y.value = physical_q_y.magnitude
 
     def compute_internal_resolution(
         self, original_resolution: ResolutionState
@@ -377,6 +394,21 @@ class AppState(HigherOrderState):
             label_img = cv.drawContours(
                 label_img, [contour], contourIdx=-1, color=label, thickness=-1
             )
+
+            # convert image to dip and configure pixel size
+            _img = dip.Image(label_img)
+            _img.SetPixelSize(
+                dip.PixelSize(
+                    (
+                        app_state.pixel_size_x.value
+                        * dip.PhysicalQuantity(app_state.pixel_unit.value),
+                        app_state.pixel_size_y.value
+                        * dip.PhysicalQuantity(app_state.pixel_unit.value),
+                    )
+                )
+            )
+            label_img = dip.Label(_img > 0)
+
             measures = dip.MeasurementTool.Measure(
                 label_img,
                 features=["Size", "Perimeter", "Feret", "Roundness", "Circularity"],
