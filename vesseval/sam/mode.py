@@ -75,6 +75,17 @@ class PointMode(AbstractMode):
         app_state.selected_region_index.value = len(app_state.regions) - 1
 
     def select_region(self, event: tk.Event):
+        # Check if the click is on an object.
+        # This is required because background points can be on other regions.
+        #
+        # How does it work?
+        #  `overlapping` returns a list of object ids under the event.
+        #  This will always be at least 1 because the image is also an object.
+        #  Thus, if `len(overlapping) > 1` something other than the image has been clicked.
+        overlapping = self.canvas.find_overlapping(event.x, event.y, event.x, event.y)
+        if len(overlapping) > 1:
+            return
+
         point = (event.x, event.y)
         # transform location of event from canvas coordinates to image coordinates
         point = app_state.display_image.to_image_coords(*point)
