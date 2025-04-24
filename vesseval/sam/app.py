@@ -5,7 +5,7 @@ from ..state import PointState, BoundingBoxState
 from ..widgets.canvas import Image, Circle, CircleState, BoundingBox
 
 from .menu import MenuBar
-from .mode import PointMode, BoxMode
+from .mode import PointMode, BoxMode, GridMode
 from .region import RegionView
 from .state import app_state, RegionState
 from .toolbar import Toolbar
@@ -38,8 +38,10 @@ class App(tk.Tk):
 
         self.point_mode = PointMode(self.canvas, self.toolbar.state.point_mode)
         self.box_mode = BoxMode(self.canvas, self.toolbar.state.box_mode)
+        self.grid_mode = GridMode(self.canvas, self.toolbar.state.grid_mode)
 
         self.image = Image(self.canvas, app_state.display_image)
+        print(self.image.img_id)
 
         self.fg_circle = None
         self.bg_circles = []

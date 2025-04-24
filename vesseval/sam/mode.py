@@ -12,12 +12,14 @@ from typing import Callable
 
 import cv2 as cv
 import tkinter as tk
-from widget_state import BoolState
+from tkinter import ttk
+from widget_state import BoolState, HigherOrderState
 
 from ..state import PointState, BoundingBoxState
-from ..widgets.canvas import BoundingBox
+from ..widgets.canvas import BoundingBox, Circle, CircleState
+from ..widgets.canvas.grid import Grid, GridState
 
-from .state import app_state, RegionState
+from .state import app_state, RegionState, PointState
 
 
 class AbstractMode:
@@ -142,3 +144,140 @@ class BoxMode(AbstractMode):
         self.state.value = False
 
         app_state.add_region(RegionState(bb=(x1, y1, x2, y2)))
+
+
+from ..widgets.textfield import IntTextField
+
+class GridConfigView(tk.Toplevel):
+
+    def __init__(self, grid) -> None:
+    # def __init__(self, state: GridState, pts: []) -> None:
+        super().__init__()
+
+        self.grid = grid
+
+        self.button = ttk.Button(self, text="Confirm", command=self.on_confirm)
+        self.button.grid(column=0, row=2)
+        self.n_points_x_textfield = IntTextField(self, self.grid.state.n_points_x)
+        self.n_points_y_textfield = IntTextField(self, self.grid.state.n_points_y)
+        self.n_points_x_textfield.grid(column=0, row=0)
+        self.n_points_y_textfield.grid(column=1, row=0)
+
+        self.bind("<Key-q>", lambda event: self.destroy())
+
+    def on_confirm(self, *args) -> None:
+        coords = []
+        for pt in self.grid.points:
+            # TODO: sort out points that are outside of the image
+            c = app_state.display_image.to_image_coords(pt.state.center.x.value, pt.state.center.y.value)
+            
+            img_shape = app_state.display_image.image_state.value.shape
+            if c[0] < 0 or c[1] < 0 or c[0] > img_shape[1] or c[1] > img_shape[0]:
+                print(f"Skip point {c}")
+                continue
+
+            coords.append(c)
+            pt.delete()
+        self.grid.delete()
+
+        for coord in coords:
+            print(f"Add region with {coord=}")
+            app_state.add_region(RegionState(pt=coord))
+
+        self.withdraw()
+        self.destroy()
+
+
+class GridMode(AbstractMode):
+
+    def __init__(self, canvas: tk.Canvas, state: bool | BoolState = False) -> None:
+        super().__init__(canvas=canvas, state=state)
+
+        self.grid = None
+        self.grid_config = None
+
+    def register_bindings(self) -> None:
+        self.bindings["<Button-1>"] = self.draw_grid
+        self.bindings["<B1-Motion>"] = self.draw_grid
+        self.bindings["<B1-ButtonRelease>"] = self.finish_grid
+
+    def draw_grid(self, event: tk.Event) -> None:
+        x, y = event.x, event.y
+        if self.grid is None:
+            grid_state = GridState()
+            #TODO: ensure that in image dimensions
+            grid_state.x.value = x
+            grid_state.y.value = y
+            self.grid = Grid(self.canvas, grid_state)
+
+            self.grid_config = GridConfigView(self.grid)
+            return
+
+        grid_state = self.grid.state
+        grid_state.width.value = x - grid_state.x.value
+        grid_state.height.value = y - grid_state.y.value
+
+        # if self.bounding_box is None:
+        #     x2, y2 = x + 1, y + 1
+        #     self.bounding_box = BoundingBox(self.canvas, BoundingBoxState(x, y, x2, y2))
+        #     self.bounding_box.style.rectangle_size.value = 0
+        #     self.bounding_box.style.line_color.value = "white"
+        #
+        #     self.grid_config = GridConfigView(self.points)
+        #
+        #     return
+        #
+        # self.bounding_box.state.bottom_right().set(x, y)
+        #
+        # for pt in self.points:
+        #     pt.delete()
+        # self.points.clear()
+        #
+        # t, l = self.bounding_box.state.top_left()
+        # b, r = self.bounding_box.state.bottom_right()
+        #
+        # n_rows = 3
+        # n_cols = 5
+        # step_x = (r.value - l.value) / n_rows
+        # step_y = (b.value - t.value) / n_cols
+        # for i in range(n_rows + 1):
+        #     t_x = step_x * i
+        #     for j in range(n_cols + 1):
+        #         t_y = step_y * j
+        #
+        #         pt = Circle(
+        #             self.canvas,
+        #             CircleState(
+        #                 PointState(t.value + t_y, l.value + t_x),
+        #                 color="white",
+        #                 radius=3,
+        #                 outline="black",
+        #             ),
+        #         )
+        #         self.points.append(pt)
+
+    def finish_grid(self, event: tk.Event) -> None:
+        # x1, y1 = self.bounding_box.state.top_left().values()
+        # x2, y2 = self.bounding_box.state.bottom_right().values()
+        #
+        # x1, y1 = app_state.display_image.to_image_coords(x1, y1)
+        # x2, y2 = app_state.display_image.to_image_coords(x2, y2)
+
+        # self.bounding_box.delete()
+        # self.bounding_box = None
+        #
+        # coords = []
+        # for pt in self.points:
+        #     c = app_state.display_image.to_image_coords(pt.state.center.x.value, pt.state.center.y.value)
+        #     coords.append(c)
+        #     pt.delete()
+        # self.points.clear()
+
+        # call unbind manually because otherwise, other bindings might
+        # be register before which confuses tkinter
+        self.unbind()
+        self.state.value = False
+
+        # for coord in coords:
+        #     print(f"Add region with {coord=}")
+        #     app_state.add_region(RegionState(pt=coord))
