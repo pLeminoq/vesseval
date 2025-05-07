@@ -13,11 +13,13 @@ from typing import Callable
 import cv2 as cv
 import tkinter as tk
 from tkinter import ttk
-from widget_state import BoolState, HigherOrderState
+from widget_state import BoolState, HigherOrderState, StringState
 
 from ..state import PointState, BoundingBoxState
 from ..widgets.canvas import BoundingBox, Circle, CircleState
 from ..widgets.canvas.grid import Grid, GridState
+from ..widgets.label import Label
+from ..widgets.textfield import IntTextField
 
 from .state import app_state, RegionState, PointState, IMAGE_PREDICTOR
 
@@ -157,7 +159,6 @@ class BoxMode(AbstractMode):
         app_state.add_region(RegionState(bb=(x1, y1, x2, y2)))
 
 
-from ..widgets.textfield import IntTextField
 
 class GridConfigView(tk.Toplevel):
 
@@ -166,14 +167,26 @@ class GridConfigView(tk.Toplevel):
 
         self.grid = grid
 
-        self.n_points_x_textfield = IntTextField(self, self.grid.state.n_points_x)
-        self.n_points_y_textfield = IntTextField(self, self.grid.state.n_points_y)
-        self.n_points_x_textfield.grid(column=0, row=0)
-        self.n_points_y_textfield.grid(column=1, row=0)
-        self.button = ttk.Button(self, text="Confirm", command=self.on_confirm)
-        self.button.grid(column=0, row=2)
+        self.label_x = Label(self, StringState("Points x:"), justify=tk.LEFT)
+        self.label_x.grid(column=0, row=0, padx=(10, 2), pady=(10, 5), sticky=tk.W)
 
-        self.bind("<Key-q>", lambda event: self.destroy())
+        self.label_y = Label(self, StringState("Points y:"), justify=tk.LEFT)
+        self.label_y.grid(column=0, row=1, padx=(10, 2), pady=(10, 5), sticky=tk.W)
+
+        self.n_points_x_textfield = IntTextField(self, self.grid.state.n_points_x)
+        self.n_points_x_textfield.grid(column=1, row=0, pady=(5, 5))
+        self.n_points_x_textfield.bind("<Left>", lambda _: self.grid.state.n_points_x.set(max(2, self.grid.state.n_points_x.value - 1)))
+        self.n_points_x_textfield.bind("<Right>", lambda _: self.grid.state.n_points_x.set(min(40, self.grid.state.n_points_x.value + 1)))
+
+        self.n_points_y_textfield = IntTextField(self, self.grid.state.n_points_y)
+        self.n_points_y_textfield.grid(column=1, row=1, pady=(5, 5))
+        self.n_points_y_textfield.bind("<Left>", lambda _: self.grid.state.n_points_y.set(max(2, self.grid.state.n_points_y.value - 1)))
+        self.n_points_y_textfield.bind("<Right>", lambda _: self.grid.state.n_points_y.set(min(40, self.grid.state.n_points_y.value + 1)))
+
+        self.button = ttk.Button(self, text="Confirm", command=self.on_confirm)
+        self.button.grid(column=0, row=2, columnspan=2, pady=(5, 10))
+
+        self.bind("<Key-q>", lambda event: exit(0))
 
     def on_confirm(self, *args) -> None:
         coords = []
@@ -182,7 +195,6 @@ class GridConfigView(tk.Toplevel):
             
             img_shape = app_state.display_image.image_state.value.shape
             if c[0] < 0 or c[1] < 0 or c[0] > img_shape[1] or c[1] > img_shape[0]:
-                print(f"Skip point {c}")
                 continue
 
             coords.append(c)
@@ -192,10 +204,6 @@ class GridConfigView(tk.Toplevel):
         points, contours = IMAGE_PREDICTOR.predict_multiple_as_contour(coords) 
         for pt, cnt in zip(points, contours):
             app_state.add_region(RegionState(pt=pt, cnt=cnt))
-
-        # for coord in coords:
-        #     print(f"Add region with {coord=}")
-        #     app_state.add_region(RegionState(pt=coord))
 
         self.withdraw()
         self.destroy()
