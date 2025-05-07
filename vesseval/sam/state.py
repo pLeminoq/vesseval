@@ -54,7 +54,7 @@ UNUSED_VALUE = -100
 
 class RegionState(HigherOrderState):
 
-    def __init__(self, pt=None, bb=None):
+    def __init__(self, pt=None, bb=None, cnt=None):
         super().__init__()
 
         self._skip_update = False
@@ -75,7 +75,7 @@ class RegionState(HigherOrderState):
             if bb is None
             else BoundingBoxState(*bb)
         )
-        self.contour = ContourState()
+        self.contour = ContourState() if cnt is None else ContourState.from_numpy(cnt)
 
         """
         Note: this is a workaround because `asynchron` as a decorator had the bug
@@ -87,7 +87,8 @@ class RegionState(HigherOrderState):
         release of reacTk dependency.
         """
         self._update_contour_async = asynchron(lambda: self.update_contour())
-        self._update_contour_async()
+        if cnt is None:
+            self._update_contour_async()
 
         self.foreground_point.on_change(lambda _: self._update_contour_async())
         self.background_points.on_change(

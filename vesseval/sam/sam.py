@@ -10,6 +10,8 @@ from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 import torch
 
+from .contour_util import Contour
+
 
 URL_WEIGHTS = (
     "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt"
@@ -81,8 +83,6 @@ class ImagePredictor:
             self.init_thread.join()
             self._predictor.set_image(image)
 
-
-
     def predict(
         self, point_coords: NDArray, point_labels: NDArray, box: NDArray
     ) -> NDArray:
@@ -120,3 +120,49 @@ class ImagePredictor:
         cnt = cnts[np.argmax(areas)]
         cnt = cnt[:, 0, :]
         return cnt
+
+    def predict_multiple_as_contour(
+        self,
+        point_coords: NDArray,
+        score_threshold: float = 0.5,
+        overlap_threshold: float = 0.1,
+    ) -> NDArray:
+        if self.embedding_thread is None:
+            raise RuntimeError(
+                "Cannot predict mask without computing the embedding first"
+            )
+
+        self.embedding_thread.join()
+
+        fg_points = []
+        contours = []
+        for point_coord in point_coords:
+            mask, score, _ = self._predictor.predict(
+                point_coords=np.array([point_coord]),
+                point_labels=np.array([1]),
+                multimask_output=False,
+                box=None,
+            )
+
+            # skip regions where the model reports a low score
+            if score < score_threshold:
+                continue
+
+            _contour = Contour.from_mask(mask[0])
+
+            # skip regions where there is significant overlap with existing regions
+            if any(
+                map(
+                    lambda contour: contour.intersection_count(_contour)
+                    / contour.area()
+                    > overlap_threshold,
+                    contours,
+                )
+            ):
+                continue
+
+            fg_points.append(point_coord)
+            contours.append(_contour)
+
+        contours = list(map(lambda contour: contour.points, contours))
+        return fg_points, contours

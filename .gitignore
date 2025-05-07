@@ -1,5 +1,6 @@
 *venv/
 data/
 checkpoints/
+categories.txt
 
 **__pycache__/
