@@ -41,7 +41,6 @@ class App(tk.Tk):
         self.grid_mode = GridMode(self.canvas, self.toolbar.state.grid_mode)
 
         self.image = Image(self.canvas, app_state.display_image)
-        print(self.image.img_id)
 
         self.fg_circle = None
         self.bg_circles = []
