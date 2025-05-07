@@ -3,12 +3,18 @@ Components of the menu bar.
 """
 
 import os
-
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
+
+import cv2 as cv
+import numpy as np
 from widget_state import StringState
 
+from ..state.util import to_tk_string_var
 from ..views.dialog.open import OpenFileDialog, SaveAsFileDialog
+from ..widgets.textfield import FloatTextField
+from ..widgets.label import Label
 from .state import app_state
 
 
@@ -71,6 +77,9 @@ class MenuTools(tk.Menu):
 
         # add commands
         self.add_command(label="Eval", command=self.eval)
+        self.add_separator()
+        self.add_command(label="Normalize", command=self.normalize)
+        self.add_command(label="Equalize Histogram", command=self.equalize_hist)
 
     def eval(self):
         table = app_state.eval_regions()
@@ -87,6 +96,56 @@ class MenuTools(tk.Menu):
         self.clipboard_clear()
         self.clipboard_append(txt)
 
+    def normalize(self):
+        _img = cv.cvtColor(app_state.original_image.value, cv.COLOR_BGR2GRAY)
+        _img = (_img - _img.min()) / (_img.max() - _img.min())
+        _img = (255 * _img).astype(np.uint8)
+        _img = cv.cvtColor(_img, cv.COLOR_GRAY2BGR)
+        app_state.original_image.value = _img
+
+    def equalize_hist(self):
+        _img = cv.cvtColor(app_state.original_image.value, cv.COLOR_BGR2GRAY)
+        _img = cv.equalizeHist(_img)
+        _img = cv.cvtColor(_img, cv.COLOR_GRAY2BGR)
+        app_state.original_image.value = _img
+
+
+class MenuOptions(tk.Menu):
+    """
+    The File menu containing options to
+      * open an image
+    """
+
+    def __init__(self, menu_bar):
+        super().__init__(menu_bar)
+
+        menu_bar.add_cascade(menu=self, label="Options")
+
+        # add commands
+        self.add_command(label="Config", command=self.config)
+
+    def config(self):
+        config_view = tk.Toplevel()
+        config_view.bind("<Key-q>", lambda _: config_view.destroy())
+
+        units = ["m", "mm", "µm", "nm"]
+
+        size_x_text_field = FloatTextField(config_view, app_state.pixel_size_x)
+        size_x_text_field.grid(row=0, column=1, padx=(2, 10), pady=5)
+        size_x_label = Label(config_view, StringState("Pixel Size X:"))
+        size_x_label.grid(row=0, column=0, sticky="w", padx=(10, 2))
+
+        size_y_text_field = FloatTextField(config_view, app_state.pixel_size_y)
+        size_y_text_field.grid(row=1, column=1, padx=(2, 10), pady=5)
+        size_y_label = Label(config_view, StringState("Pixel Size Y:"))
+        size_y_label.grid(row=1, column=0, sticky="w", padx=(10, 2))
+
+        unit_dropdown = tk.OptionMenu(config_view, to_tk_string_var(app_state.pixel_unit), *units)
+        unit_dropdown.grid(row=0, column=2, rowspan=2)
+        
+        button = ttk.Button(config_view, text="Save", command=lambda *_: config_view.destroy())
+        button.grid(row=2, column=0, columnspan=3, pady=5)
+
 
 class MenuBar(tk.Menu):
     """
@@ -101,3 +160,4 @@ class MenuBar(tk.Menu):
 
         self.menu_file = MenuFile(self)
         self.menu_tools = MenuTools(self)
+        self.menu_options = MenuOptions(self)
